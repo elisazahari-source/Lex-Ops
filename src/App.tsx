@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { LegalProvider, useLegal } from './context/LegalContext';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';

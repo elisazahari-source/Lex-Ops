@@ -93,7 +93,7 @@ export const PropertyMattersTable: React.FC = () => {
               <Building2 className="w-4 h-4 stroke-[2.2]" />
             </span>
             <h2 className="text-[14px] font-bold text-slate-900 tracking-tight">
-              Property Conveyancing & Real Estate Matters (PRD F05)
+              Property Conveyancing & Real Estate Matters
             </h2>
           </div>
           <p className="text-[12px] text-slate-500">

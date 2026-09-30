@@ -99,7 +99,7 @@ export const LodTrackerTable: React.FC = () => {
               <Scale className="w-4 h-4 stroke-[2.2]" />
             </span>
             <h2 className="text-[14px] font-bold text-slate-900 tracking-tight">
-              Letter of Demand (LOD) & Litigation Tracker (PRD F06)
+              Letter of Demand (LOD) & Litigation Tracker
             </h2>
           </div>
           <p className="text-[12px] text-slate-500">

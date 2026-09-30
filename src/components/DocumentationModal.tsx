@@ -43,7 +43,7 @@ export const DocumentationModal: React.FC = () => {
             <BookOpen className="w-4 h-4 text-blue-700" />
             <div>
               <h2 className="text-[14px] font-bold text-slate-900">
-                LEXOPS COUNSEL OS — PRD v1.3 & System Documentation
+                LEXOPS COUNSEL OS — System Documentation & Operations Guide
               </h2>
               <p className="text-[11.5px] text-slate-500">
                 Single Legal Manager Operations Console · Built for In-House Counsel
@@ -74,7 +74,7 @@ export const DocumentationModal: React.FC = () => {
           <div className="space-y-2">
             <h3 className="font-bold text-slate-900 text-[13px] flex items-center gap-1.5">
               <Shield className="w-4 h-4 text-slate-500" />
-              <span>PRD v1.3 Verification Test Matrix (TC01 – TC13)</span>
+              <span>Verification Test Matrix (TC01 – TC13)</span>
             </h3>
             <div className="border border-slate-200 rounded-md overflow-hidden">
               <table className="w-full text-left border-collapse text-[11.5px]">

@@ -101,7 +101,7 @@ export const IpTrademarksTable: React.FC = () => {
               <BookmarkCheck className="w-4 h-4 stroke-[2.2]" />
             </span>
             <h2 className="text-[14px] font-bold text-slate-900 tracking-tight">
-              Intellectual Property Portfolio (PRD F04)
+              Intellectual Property Portfolio
             </h2>
           </div>
           <p className="text-[12px] text-slate-500">

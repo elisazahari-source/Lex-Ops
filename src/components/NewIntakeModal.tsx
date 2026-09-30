@@ -1395,9 +1395,6 @@ export const NewIntakeModal: React.FC = () => {
                       Select IP asset classification (Brand Trademark or Technical Invention Patent)
                     </p>
                   </div>
-                  <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full bg-teal-100 text-teal-800">
-                    PRD F04
-                  </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 pt-1">

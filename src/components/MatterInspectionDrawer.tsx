@@ -62,6 +62,7 @@ export const MatterInspectionDrawer: React.FC = () => {
     updateProperty,
     updateIp,
     setIsGoogleDriveOpen,
+    saveLink,
   } = useLegal();
 
   // Find active item
@@ -321,6 +322,15 @@ export const MatterInspectionDrawer: React.FC = () => {
         dataUrl: reader.result as string,
       };
       setDocumentsDraft((prev) => [...prev, newDoc]);
+      saveLink({
+        id: newDoc.id,
+        name: newDoc.name,
+        url: (reader.result as string)?.substring(0, 120) || '',
+        category: 'Uploaded Matter Document',
+        matterId: data?.id,
+        matterType: type,
+        sizeFormatted: newDoc.sizeFormatted,
+      }).catch(() => {});
     };
     reader.readAsDataURL(file);
     e.target.value = '';

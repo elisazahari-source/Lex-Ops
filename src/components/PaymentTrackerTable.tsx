@@ -171,7 +171,7 @@ export const PaymentTrackerTable: React.FC = () => {
               <CreditCard className="w-4 h-4 stroke-[2.2]" />
             </span>
             <h2 className="text-[14px] font-bold text-slate-900 tracking-tight">
-              External Counsel Fee & Finance Payment Tracker (PRD F07)
+              External Counsel Fee & Finance Payment Tracker
             </h2>
           </div>
           <p className="text-[12px] text-slate-500">

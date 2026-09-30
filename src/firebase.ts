@@ -3,17 +3,20 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
   signOut,
   onAuthStateChanged,
   User,
 } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDocFromServer } from 'firebase/firestore';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 
-// CRITICAL: The app will break without specifying firestoreDatabaseId
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+const dbId = (firebaseConfig as { firestoreDatabaseId?: string }).firestoreDatabaseId;
+export const db = dbId ? getFirestore(app, dbId) : getFirestore(app);
 export const auth = getAuth(app);
 
 // All Google Drive scopes configured via OAuth
@@ -47,6 +50,7 @@ export interface AppUserProfile {
   email: string;
   photoURL?: string;
   role: string;
+  department?: string;
   lastLogin: string;
 }
 
@@ -69,7 +73,7 @@ export function getCachedAccessToken(): string | null {
   return cachedAccessToken;
 }
 
-export async function signInWithGoogle(): Promise<{ user: User; accessToken: string | null }> {
+export async function signInWithGoogle(): Promise<{ user: User | null; accessToken: string | null }> {
   try {
     isSigningIn = true;
     const result = await signInWithPopup(auth, googleProvider);
@@ -87,6 +91,7 @@ export async function signInWithGoogle(): Promise<{ user: User; accessToken: str
           result.user.email === 'elisa.zahari@mediaprima.com.my'
             ? 'Lead Legal Counsel (Admin)'
             : 'In-House Legal Counsel',
+        department: 'Media Prima Legal Operations',
         lastLogin: new Date().toISOString(),
       };
 
@@ -96,12 +101,68 @@ export async function signInWithGoogle(): Promise<{ user: User; accessToken: str
     }
 
     return { user: result.user, accessToken: cachedAccessToken };
-  } catch (error) {
+  } catch (error: unknown) {
+    // Gracefully handle user cancellation/closing popup without throwing uncaught fatal errors
+    if (error && typeof error === 'object' && 'code' in error) {
+      const code = (error as { code: string }).code;
+      if (
+        code === 'auth/popup-closed-by-user' ||
+        code === 'auth/cancelled-popup-request' ||
+        code === 'auth/user-cancelled'
+      ) {
+        console.warn('Google sign-in popup dismissed by user.');
+        return { user: null, accessToken: null };
+      }
+    }
     console.error('Google sign-in error:', error);
     throw error;
   } finally {
     isSigningIn = false;
   }
+}
+
+export async function signUpWithEmail(
+  email: string,
+  pass: string,
+  displayName: string,
+  role: string = 'In-House Legal Counsel',
+  department: string = 'Media Prima Legal Operations'
+): Promise<User> {
+  const cred = await createUserWithEmailAndPassword(auth, email, pass);
+  if (displayName) {
+    await updateProfile(cred.user, { displayName });
+  }
+
+  const userProfile: AppUserProfile = {
+    uid: cred.user.uid,
+    displayName: displayName || cred.user.email?.split('@')[0] || 'Legal Counsel',
+    email: cred.user.email || email,
+    role:
+      email === 'elisa.zahari@mediaprima.com.my'
+        ? 'Lead Legal Counsel (Admin)'
+        : role,
+    department,
+    lastLogin: new Date().toISOString(),
+  };
+
+  setDoc(doc(db, 'users', cred.user.uid), userProfile, { merge: true }).catch((err) => {
+    console.warn('Could not save user profile to Firestore:', err);
+  });
+
+  return cred.user;
+}
+
+export async function signInWithEmail(email: string, pass: string): Promise<User> {
+  const cred = await signInWithEmailAndPassword(auth, email, pass);
+  
+  // Update last login
+  const userProfile: Partial<AppUserProfile> = {
+    uid: cred.user.uid,
+    lastLogin: new Date().toISOString(),
+  };
+  setDoc(doc(db, 'users', cred.user.uid), userProfile, { merge: true }).catch(() => {});
+
+  return cred.user;
 }
 
 export async function signOutUser() {
@@ -134,19 +195,6 @@ export async function saveLinkToFirebase(linkData: {
     throw error;
   }
 }
-
-// Validate connection to Firestore as mandated by skill
-export async function testFirestoreConnection() {
-  try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error('Please check your Firebase configuration.');
-    }
-  }
-}
-
-testFirestoreConnection();
 
 export enum OperationType {
   CREATE = 'create',

@@ -107,7 +107,7 @@ export const AgreementsTable: React.FC = () => {
               <FileText className="w-4 h-4 stroke-[2.2]" />
             </span>
             <h2 className="text-[14px] font-bold text-slate-900 tracking-tight">
-              Agreement Lifecycle & LDRF Intake Tracker (PRD F01 & F02)
+              Agreement Lifecycle & LDRF Intake Tracker
             </h2>
           </div>
           <p className="text-[12px] text-slate-500">

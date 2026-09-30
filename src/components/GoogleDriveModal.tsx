@@ -37,7 +37,7 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
   onClose,
   onAttachFile,
 }) => {
-  const { user, signIn, selectedMatter, agreements, lods, properties, ips } = useLegal();
+  const { user, signIn, selectedMatter, agreements, lods, properties, ips, saveLink } = useLegal();
 
   const [files, setFiles] = useState<DriveFileItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -165,6 +165,18 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
     try {
       const uploaded = await uploadFileToDrive(matterTitle, matterSummary, 'text/plain');
       setUploadSuccess(`Successfully uploaded "${uploaded.name}" to Google Drive!`);
+      // Save link directly to Firebase Firestore
+      if (uploaded?.id) {
+        saveLink({
+          id: uploaded.id,
+          name: uploaded.name,
+          url: uploaded.webViewLink || `https://drive.google.com/file/d/${uploaded.id}/view`,
+          category: 'Google Drive Matter Export',
+          matterId: selectedMatter?.id,
+          matterType: selectedMatter?.type,
+          sizeFormatted: uploaded.size ? `${(Number(uploaded.size) / 1024).toFixed(1)} KB` : 'Google Doc',
+        }).catch((e) => console.warn('Could not save uploaded link to Firebase:', e));
+      }
       await fetchFiles();
       setTimeout(() => setUploadSuccess(null), 5000);
     } catch (err: any) {
@@ -380,13 +392,23 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
                           {onAttachFile && (
                             <button
                               onClick={() => {
+                                const linkPayload = {
+                                  id: file.id,
+                                  name: file.name,
+                                  url: file.webViewLink || `https://drive.google.com/file/d/${file.id}/view`,
+                                  category: 'Google Drive Attached Link',
+                                  matterId: selectedMatter?.id,
+                                  matterType: selectedMatter?.type,
+                                  sizeFormatted: file.size
+                                    ? `${(Number(file.size) / (1024 * 1024)).toFixed(2)} MB`
+                                    : 'Drive Doc',
+                                };
+                                saveLink(linkPayload).catch(() => {});
                                 onAttachFile({
                                   id: file.id,
                                   name: file.name,
                                   url: file.webViewLink,
-                                  size: file.size
-                                    ? `${(Number(file.size) / (1024 * 1024)).toFixed(2)} MB`
-                                    : 'Drive Doc',
+                                  size: linkPayload.sizeFormatted,
                                 });
                                 onClose();
                               }}

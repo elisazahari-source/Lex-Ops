@@ -69,6 +69,7 @@ export interface AgreementMatter {
   contractValue?: number;
   currency?: Currency;
   assignedCounsel: string;
+  ownerEmail?: string;
   notes?: string;
   remarks?: string;
   invoice?: InvoiceDetails;
@@ -101,6 +102,7 @@ export interface LodMatter {
   invoice?: InvoiceDetails;
   documents?: SupportingDocument[];
   assignedCounsel?: string;
+  ownerEmail?: string;
 }
 
 export interface PropertyMatter {
@@ -130,6 +132,7 @@ export interface PropertyMatter {
   invoice?: InvoiceDetails;
   documents?: SupportingDocument[];
   assignedCounsel?: string;
+  ownerEmail?: string;
 }
 
 export type IpType = 'Trademark' | 'Patent';
@@ -153,6 +156,7 @@ export interface IpMatter {
   invoice?: InvoiceDetails;
   documents?: SupportingDocument[];
   assignedCounsel?: string;
+  ownerEmail?: string;
 }
 
 export type ActiveTab =

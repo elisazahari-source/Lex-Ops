@@ -25,6 +25,8 @@ import {
   db,
   signInWithGoogle,
   signOutUser,
+  signUpWithEmail,
+  signInWithEmail,
   saveLinkToFirebase,
   AppUserProfile,
   handleFirestoreError,
@@ -39,6 +41,60 @@ import {
 } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
 
+export interface ActiveCounselUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  department: string;
+  avatarUrl?: string;
+  isFirebaseUser?: boolean;
+}
+
+export const DEFAULT_TEAM_COUNSELS: ActiveCounselUser[] = [
+  {
+    id: 'counsel-1',
+    name: 'Elisa Zahari',
+    email: 'elisa.zahari@mediaprima.com.my',
+    role: 'Lead Legal Counsel (Admin)',
+    department: 'Executive Legal Office',
+    avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120&auto=format&fit=crop&q=80',
+    isFirebaseUser: true,
+  },
+  {
+    id: 'counsel-2',
+    name: 'Ahmad Fadzli',
+    email: 'ahmad.fadzli@mediaprima.com.my',
+    role: 'Senior Legal Counsel (Litigation & Dispute)',
+    department: 'Dispute Resolution & Regulatory',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'counsel-3',
+    name: 'Siti Aminah',
+    email: 'siti.aminah@mediaprima.com.my',
+    role: 'Legal Counsel (Commercial Contracts)',
+    department: 'Commercial & Ad Sales',
+    avatarUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=120&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'counsel-4',
+    name: 'Tan Wei Lun',
+    email: 'weilun.tan@mediaprima.com.my',
+    role: 'Legal Counsel (Conveyancing & IP)',
+    department: 'Real Estate & Trademark Operations',
+    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'counsel-5',
+    name: 'Nurul Huda',
+    email: 'huda.nurul@mediaprima.com.my',
+    role: 'Legal Operations & Compliance Executive',
+    department: 'Legal Operations & Governance',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+  },
+];
+
 interface SelectedMatterPayload {
   type: 'agreement' | 'lod' | 'property' | 'ip';
   id: string;
@@ -49,6 +105,12 @@ interface LegalContextType {
   lods: LodMatter[];
   properties: PropertyMatter[];
   ips: IpMatter[];
+  allAgreements: AgreementMatter[];
+  allLods: LodMatter[];
+  allProperties: PropertyMatter[];
+  allIps: IpMatter[];
+  userScope: 'personal' | 'team';
+  setUserScope: (scope: 'personal' | 'team') => void;
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
   activeFilter: AlertFilter;
@@ -56,15 +118,26 @@ interface LegalContextType {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   
-  // Firebase Auth & Cloud Sync
+  // Firebase Auth & Multi-User Cloud Sync
+  isAuthenticated: boolean;
+  setIsAuthenticated: (auth: boolean) => void;
   user: User | null;
+  activeUser: ActiveCounselUser;
+  setActiveUser: (user: ActiveCounselUser) => void;
+  teamCounsels: ActiveCounselUser[];
+  signInCounsel: (email: string, name?: string, role?: string, department?: string) => void;
+  seedTeammateSampleData: (email: string, name: string) => void;
   userProfiles: AppUserProfile[];
   savedLinks: any[];
   isAuthReady: boolean;
   isSyncingWithFirebase: boolean;
+  isAuthModalOpen: boolean;
+  setIsAuthModalOpen: (open: boolean) => void;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
   switchAccount: () => Promise<void>;
+  signUp: (email: string, pass: string, displayName: string, role?: string, department?: string) => Promise<void>;
+  signInWithCredentials: (email: string, pass: string) => Promise<void>;
   saveLink: (link: any) => Promise<void>;
 
   // Modal and Drawer States
@@ -127,7 +200,7 @@ const STORAGE_KEYS = {
 };
 
 export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [agreements, setAgreements] = useState<AgreementMatter[]>(() => {
+  const [allAgreements, setAllAgreements] = useState<AgreementMatter[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.AGREEMENTS);
       if (stored) return JSON.parse(stored);
@@ -137,7 +210,7 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return INITIAL_AGREEMENTS;
   });
 
-  const [lods, setLods] = useState<LodMatter[]>(() => {
+  const [allLods, setAllLods] = useState<LodMatter[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.LODS);
       if (stored) return JSON.parse(stored);
@@ -147,7 +220,7 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return INITIAL_LODS;
   });
 
-  const [properties, setProperties] = useState<PropertyMatter[]>(() => {
+  const [allProperties, setAllProperties] = useState<PropertyMatter[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.PROPERTIES);
       if (stored) return JSON.parse(stored);
@@ -157,7 +230,7 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return INITIAL_PROPERTIES;
   });
 
-  const [ips, setIps] = useState<IpMatter[]>(() => {
+  const [allIps, setAllIps] = useState<IpMatter[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.IPS);
       if (stored) return JSON.parse(stored);
@@ -167,26 +240,181 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return INITIAL_IPS;
   });
 
+  // Multi-user personal vs team view scope
+  const [userScope, setUserScope] = useState<'personal' | 'team'>('personal');
+
+  // Multi-user authentication session
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+
   // Firebase Auth State
   const [user, setUser] = useState<User | null>(null);
+  const [activeUser, setActiveUser] = useState<ActiveCounselUser>(DEFAULT_TEAM_COUNSELS[0]);
+
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [savedLinks, setSavedLinks] = useState<any[]>([]);
   const [userProfiles, setUserProfiles] = useState<AppUserProfile[]>([]);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [isSyncingWithFirebase, setIsSyncingWithFirebase] = useState(false);
 
+  // Full unified matters
+  const agreements = allAgreements;
+  const lods = allLods;
+  const properties = allProperties;
+  const ips = allIps;
+
+  // Auth observer
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsAuthReady(true);
+      if (currentUser) {
+        const counselUser: ActiveCounselUser = {
+          id: currentUser.uid,
+          name: currentUser.displayName || currentUser.email?.split('@')[0] || 'Legal Counsel',
+          email: (currentUser.email || '').toLowerCase(),
+          role:
+            currentUser.email === 'elisa.zahari@mediaprima.com.my'
+              ? 'Lead Legal Counsel (Admin)'
+              : 'In-House Legal Counsel',
+          department: 'Media Prima Legal Operations',
+          avatarUrl: currentUser.photoURL || undefined,
+          isFirebaseUser: true,
+        };
+        setActiveUser(counselUser);
+        setIsAuthenticated(true);
+        localStorage.setItem('lexops_auth_session', 'true');
+        localStorage.setItem('lexops_active_counsel', JSON.stringify(counselUser));
+      }
     });
     return () => unsubscribeAuth();
   }, []);
 
+  const signInCounsel = (email: string, name?: string, role?: string, department?: string) => {
+    const trimmedEmail = email.trim().toLowerCase();
+    const existing = DEFAULT_TEAM_COUNSELS.find((c) => c.email.toLowerCase() === trimmedEmail);
+    const counselUser: ActiveCounselUser = {
+      id: existing ? existing.id : `counsel-${Date.now()}`,
+      name:
+        name?.trim() ||
+        existing?.name ||
+        trimmedEmail.split('@')[0].replace('.', ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+      email: trimmedEmail,
+      role:
+        role ||
+        existing?.role ||
+        (trimmedEmail === 'elisa.zahari@mediaprima.com.my'
+          ? 'Lead Legal Counsel (Admin)'
+          : 'In-House Legal Counsel'),
+      department: department || existing?.department || 'Legal Department, Media Prima Berhad',
+      avatarUrl: existing?.avatarUrl,
+    };
+    setActiveUser(counselUser);
+    setIsAuthenticated(true);
+    localStorage.setItem('lexops_auth_session', 'true');
+    localStorage.setItem('lexops_active_counsel', JSON.stringify(counselUser));
+  };
+
+  const seedTeammateSampleData = (email: string, name: string) => {
+    const emailLower = email.toLowerCase();
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const expDate = new Date(now.getTime() + 180 * 24 * 3600 * 1000).toISOString().split('T')[0];
+
+    const starterAgreement: AgreementMatter = {
+      id: `AGR-${Date.now().toString().slice(-4)}`,
+      title: `${name} - Operational Services Master Agreement`,
+      agreementType: 'Master Services Agreement',
+      stakeholderName: 'Corporate Strategy Group',
+      stakeholderDepartment: 'Legal Operations',
+      counterpartyName: 'Premier Technology Solutions Sdn Bhd',
+      requestDate: dateStr,
+      expectedExpiryDate: expDate,
+      renewalPromptLeadDays: 60,
+      stage: 'LDRF Received / Drafting',
+      tatDaysElapsed: 1,
+      lastModified: `${dateStr} 09:00`,
+      contractValue: 450000,
+      currency: 'MYR',
+      assignedCounsel: `${name} (In-House)`,
+      ownerEmail: emailLower,
+      notes: `Initial operational agreement assigned to ${name}.`,
+    };
+
+    const starterLod: LodMatter = {
+      id: `LOD-${Date.now().toString().slice(-4)}`,
+      claimRef: `MPB/LEGAL/${name.split(' ')[0].toUpperCase()}/2024/01`,
+      title: `${name} - Software Licensing Compliance Claim Review`,
+      claimantName: 'Enterprise Software Alliance Malaysia',
+      adverseCounsel: 'Messrs. Wong & Partners',
+      appointedLitigationFirm: 'Messrs. Shearn Delamore & Co',
+      briefClaimSummary: 'Letter of Demand alleging software license discrepancy across secondary subsidiary workstation clusters.',
+      claimAmount: 185000,
+      currency: 'MYR',
+      dateReceived: dateStr,
+      responseDeadlineDate: new Date(now.getTime() + 14 * 24 * 3600 * 1000).toISOString().split('T')[0],
+      responseDeadlineOption: '14 Days',
+      stage: 'Fact-Finding with Stakeholders',
+      currentFactFindingStep: 'Internal Audit with IT Department',
+      inquiredStakeholders: ['IT Security Lead', 'Enterprise Architecture', 'Procurement'],
+      responseNotes: `Case file opened by ${name}. Initial memorandum drafted.`,
+      assignedCounsel: `${name} (In-House)`,
+      ownerEmail: emailLower,
+    };
+
+    const starterProperty: PropertyMatter = {
+      id: `PROP-${Date.now().toString().slice(-4)}`,
+      propertyName: 'Media Prima Regional Hub Commercial Tenancy',
+      propertyAddress: 'Unit 4-02, Menara MPB, Jalan Bukit Bintang, Kuala Lumpur',
+      transactionType: 'Tenancy',
+      counterparty: 'Sunway REIT Management Sdn Bhd',
+      internalStakeholder: 'Regional Office Operations',
+      stakeholderDepartment: 'Corporate Services',
+      externalLawFirm: 'Messrs. Halim Hong & Koh',
+      lawyerContact: 'partner@hhk.com.my',
+      targetCompletionDate: expDate,
+      stage: 'Initial Drafting',
+      rentalOrValueAmount: 32000,
+      currency: 'MYR',
+      assignedCounsel: `${name} (In-House)`,
+      ownerEmail: emailLower,
+      notes: `Commercial tenancy renewal monitored by ${name}.`,
+    };
+
+    const starterIp: IpMatter = {
+      id: `TM-${Date.now().toString().slice(-4)}`,
+      ipType: 'Trademark',
+      trademarkName: `${name.split(' ')[0]} Media Special Feature Brand`,
+      registrationNumber: `MY-${Date.now().toString().slice(-6)}`,
+      niceClass: 'Class 38 (Telecommunications & Broadcasting)',
+      filingDate: dateStr,
+      expiryRenewalDate: new Date(now.getTime() + 365 * 10 * 24 * 3600 * 1000).toISOString().split('T')[0],
+      status: 'Registered',
+      stakeholderName: 'Content & IP Governance',
+      stakeholderDepartment: 'Group Digital',
+      externalLawFirm: 'Messrs. Henry Goh & Co',
+      lawyerContact: 'trademark@henrygoh.com',
+      jurisdiction: 'Malaysia (MyIPO)',
+      assignedCounsel: `${name} (In-House)`,
+      ownerEmail: emailLower,
+      notes: `Registered trademark portfolio under ${name}.`,
+    };
+
+    setAllAgreements((prev) => [starterAgreement, ...prev]);
+    setAllLods((prev) => [starterLod, ...prev]);
+    setAllProperties((prev) => [starterProperty, ...prev]);
+    setAllIps((prev) => [starterIp, ...prev]);
+
+    setDoc(doc(db, 'agreements', starterAgreement.id), starterAgreement).catch(console.warn);
+    setDoc(doc(db, 'lods', starterLod.id), starterLod).catch(console.warn);
+    setDoc(doc(db, 'properties', starterProperty.id), starterProperty).catch(console.warn);
+    setDoc(doc(db, 'ips', starterIp.id), starterIp).catch(console.warn);
+  };
+
   const signIn = async () => {
     try {
       await signInWithGoogle();
-    } catch (err) {
-      console.error('Failed to sign in with Google:', err);
+    } catch {
+      // Handled gracefully in signInWithGoogle
     }
   };
 
@@ -196,14 +424,51 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch (err) {
       console.error('Failed to sign out:', err);
     }
+    setIsAuthenticated(false);
+    localStorage.removeItem('lexops_auth_session');
   };
 
   const switchAccount = async () => {
     try {
-      await signInWithGoogle();
-    } catch (err) {
-      console.error('Failed to switch account:', err);
+      const cred = await signInWithGoogle();
+      if (cred?.user) {
+        const u = cred.user;
+        const counselUser: ActiveCounselUser = {
+          id: u.uid,
+          name: u.displayName || u.email?.split('@')[0] || 'Legal Counsel',
+          email: (u.email || '').toLowerCase(),
+          role:
+            u.email === 'elisa.zahari@mediaprima.com.my'
+              ? 'Lead Legal Counsel (Admin)'
+              : 'In-House Legal Counsel',
+          department: 'Legal Department, Media Prima Berhad',
+          avatarUrl: u.photoURL || undefined,
+          isFirebaseUser: true,
+        };
+        setActiveUser(counselUser);
+        setIsAuthenticated(true);
+        localStorage.setItem('lexops_auth_session', 'true');
+        localStorage.setItem('lexops_active_counsel', JSON.stringify(counselUser));
+      }
+    } catch {
+      // Handled gracefully in signInWithGoogle
     }
+  };
+
+  const signUp = async (
+    email: string,
+    pass: string,
+    displayName: string,
+    role: string = 'In-House Legal Counsel',
+    department: string = 'Media Prima Legal Operations'
+  ) => {
+    await signUpWithEmail(email, pass, displayName, role, department);
+    signInCounsel(email, displayName, role, department);
+  };
+
+  const signInWithCredentials = async (email: string, pass: string) => {
+    await signInWithEmail(email, pass);
+    signInCounsel(email);
   };
 
   const saveLink = async (linkData: any) => {
@@ -215,13 +480,8 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  // Real-time Firestore synchronization when authenticated
+  // Real-time Firestore synchronization
   useEffect(() => {
-    if (!user) {
-      setIsSyncingWithFirebase(false);
-      return;
-    }
-
     setIsSyncingWithFirebase(true);
 
     const unsubAgreements = onSnapshot(
@@ -229,10 +489,10 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       (snapshot) => {
         if (!snapshot.empty) {
           const remote = snapshot.docs.map((d) => d.data() as AgreementMatter);
-          setAgreements(remote);
+          setAllAgreements(remote);
         } else {
           // Initial seed
-          agreements.forEach((agr) => {
+          allAgreements.forEach((agr) => {
             setDoc(doc(db, 'agreements', agr.id), agr).catch((err) =>
               handleFirestoreError(err, OperationType.WRITE, `agreements/${agr.id}`)
             );
@@ -249,9 +509,9 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       (snapshot) => {
         if (!snapshot.empty) {
           const remote = snapshot.docs.map((d) => d.data() as LodMatter);
-          setLods(remote);
+          setAllLods(remote);
         } else {
-          lods.forEach((lod) => {
+          allLods.forEach((lod) => {
             setDoc(doc(db, 'lods', lod.id), lod).catch((err) =>
               handleFirestoreError(err, OperationType.WRITE, `lods/${lod.id}`)
             );
@@ -268,9 +528,9 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       (snapshot) => {
         if (!snapshot.empty) {
           const remote = snapshot.docs.map((d) => d.data() as PropertyMatter);
-          setProperties(remote);
+          setAllProperties(remote);
         } else {
-          properties.forEach((prop) => {
+          allProperties.forEach((prop) => {
             setDoc(doc(db, 'properties', prop.id), prop).catch((err) =>
               handleFirestoreError(err, OperationType.WRITE, `properties/${prop.id}`)
             );
@@ -287,9 +547,9 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       (snapshot) => {
         if (!snapshot.empty) {
           const remote = snapshot.docs.map((d) => d.data() as IpMatter);
-          setIps(remote);
+          setAllIps(remote);
         } else {
-          ips.forEach((ip) => {
+          allIps.forEach((ip) => {
             setDoc(doc(db, 'ips', ip.id), ip).catch((err) =>
               handleFirestoreError(err, OperationType.WRITE, `ips/${ip.id}`)
             );
@@ -334,7 +594,7 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       unsubUsers();
       setIsSyncingWithFirebase(false);
     };
-  }, [user]);
+  }, []);
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
   const [activeFilter, setActiveFilter] = useState<AlertFilter>('all');
@@ -356,35 +616,35 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Sync to local storage
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEYS.AGREEMENTS, JSON.stringify(agreements));
+      localStorage.setItem(STORAGE_KEYS.AGREEMENTS, JSON.stringify(allAgreements));
     } catch (e) {
       console.error(e);
     }
-  }, [agreements]);
+  }, [allAgreements]);
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEYS.LODS, JSON.stringify(lods));
+      localStorage.setItem(STORAGE_KEYS.LODS, JSON.stringify(allLods));
     } catch (e) {
       console.error(e);
     }
-  }, [lods]);
+  }, [allLods]);
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEYS.PROPERTIES, JSON.stringify(properties));
+      localStorage.setItem(STORAGE_KEYS.PROPERTIES, JSON.stringify(allProperties));
     } catch (e) {
       console.error(e);
     }
-  }, [properties]);
+  }, [allProperties]);
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEYS.IPS, JSON.stringify(ips));
+      localStorage.setItem(STORAGE_KEYS.IPS, JSON.stringify(allIps));
     } catch (e) {
       console.error(e);
     }
-  }, [ips]);
+  }, [allIps]);
 
   // Keyboard shortcut ⌘K or Ctrl+K for search
   useEffect(() => {
@@ -403,7 +663,7 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Recalculate TAT for agreements upon load
   useEffect(() => {
-    setAgreements((prev) =>
+    setAllAgreements((prev) =>
       prev.map((agr) => ({
         ...agr,
         tatDaysElapsed: calculateTAT(agr.requestDate, agr.executionDate),
@@ -412,7 +672,7 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const addAgreement = (data: Omit<AgreementMatter, 'id' | 'tatDaysElapsed' | 'lastModified'>) => {
-    const nextNumber = agreements.length + 42;
+    const nextNumber = allAgreements.length + 42;
     const newId = `AGR-2024-${String(nextNumber).padStart(3, '0')}`;
     const now = new Date();
     const formattedNow = `${now.toISOString().split('T')[0]} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -421,24 +681,24 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const newAgreement: AgreementMatter = {
       ...data,
       id: newId,
+      ownerEmail: data.ownerEmail || activeUser.email.toLowerCase(),
+      assignedCounsel: data.assignedCounsel || `${activeUser.name} (In-House)`,
       tatDaysElapsed: tat,
       lastModified: formattedNow,
     };
 
-    setAgreements((prev) => [newAgreement, ...prev]);
+    setAllAgreements((prev) => [newAgreement, ...prev]);
 
-    if (user) {
-      setDoc(doc(db, 'agreements', newId), newAgreement).catch((err) =>
-        handleFirestoreError(err, OperationType.CREATE, `agreements/${newId}`)
-      );
-    }
+    setDoc(doc(db, 'agreements', newId), newAgreement).catch((err) =>
+      handleFirestoreError(err, OperationType.CREATE, `agreements/${newId}`)
+    );
   };
 
   const updateAgreement = (id: string, updates: Partial<AgreementMatter>) => {
     const now = new Date();
     const formattedNow = `${now.toISOString().split('T')[0]} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     
-    setAgreements((prev) =>
+    setAllAgreements((prev) =>
       prev.map((item) => {
         if (item.id === id) {
           const merged = { ...item, ...updates, lastModified: formattedNow };
@@ -447,11 +707,9 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           }
           merged.tatDaysElapsed = calculateTAT(merged.requestDate, merged.executionDate);
 
-          if (user) {
-            setDoc(doc(db, 'agreements', id), merged).catch((err) =>
-              handleFirestoreError(err, OperationType.UPDATE, `agreements/${id}`)
-            );
-          }
+          setDoc(doc(db, 'agreements', id), merged).catch((err) =>
+            handleFirestoreError(err, OperationType.UPDATE, `agreements/${id}`)
+          );
           return merged;
         }
         return item;
@@ -460,31 +718,29 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const addLod = (data: Omit<LodMatter, 'id'>) => {
-    const nextNumber = lods.length + 17;
+    const nextNumber = allLods.length + 17;
     const newId = `LOD-2024-${String(nextNumber).padStart(3, '0')}`;
     const newLod: LodMatter = {
       ...data,
       id: newId,
+      ownerEmail: data.ownerEmail || activeUser.email.toLowerCase(),
+      assignedCounsel: data.assignedCounsel || `${activeUser.name} (In-House)`,
     };
-    setLods((prev) => [newLod, ...prev]);
+    setAllLods((prev) => [newLod, ...prev]);
 
-    if (user) {
-      setDoc(doc(db, 'lods', newId), newLod).catch((err) =>
-        handleFirestoreError(err, OperationType.CREATE, `lods/${newId}`)
-      );
-    }
+    setDoc(doc(db, 'lods', newId), newLod).catch((err) =>
+      handleFirestoreError(err, OperationType.CREATE, `lods/${newId}`)
+    );
   };
 
   const updateLod = (id: string, updates: Partial<LodMatter>) => {
-    setLods((prev) =>
+    setAllLods((prev) =>
       prev.map((item) => {
         if (item.id === id) {
           const merged = { ...item, ...updates };
-          if (user) {
-            setDoc(doc(db, 'lods', id), merged).catch((err) =>
-              handleFirestoreError(err, OperationType.UPDATE, `lods/${id}`)
-            );
-          }
+          setDoc(doc(db, 'lods', id), merged).catch((err) =>
+            handleFirestoreError(err, OperationType.UPDATE, `lods/${id}`)
+          );
           return merged;
         }
         return item;
@@ -493,31 +749,29 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const addProperty = (data: Omit<PropertyMatter, 'id'>) => {
-    const nextNumber = properties.length + 9;
+    const nextNumber = allProperties.length + 9;
     const newId = `PROP-2024-${String(nextNumber).padStart(3, '0')}`;
     const newProp: PropertyMatter = {
       ...data,
       id: newId,
+      ownerEmail: data.ownerEmail || activeUser.email.toLowerCase(),
+      assignedCounsel: data.assignedCounsel || `${activeUser.name} (In-House)`,
     };
-    setProperties((prev) => [newProp, ...prev]);
+    setAllProperties((prev) => [newProp, ...prev]);
 
-    if (user) {
-      setDoc(doc(db, 'properties', newId), newProp).catch((err) =>
-        handleFirestoreError(err, OperationType.CREATE, `properties/${newId}`)
-      );
-    }
+    setDoc(doc(db, 'properties', newId), newProp).catch((err) =>
+      handleFirestoreError(err, OperationType.CREATE, `properties/${newId}`)
+    );
   };
 
   const updateProperty = (id: string, updates: Partial<PropertyMatter>) => {
-    setProperties((prev) =>
+    setAllProperties((prev) =>
       prev.map((item) => {
         if (item.id === id) {
           const merged = { ...item, ...updates };
-          if (user) {
-            setDoc(doc(db, 'properties', id), merged).catch((err) =>
-              handleFirestoreError(err, OperationType.UPDATE, `properties/${id}`)
-            );
-          }
+          setDoc(doc(db, 'properties', id), merged).catch((err) =>
+            handleFirestoreError(err, OperationType.UPDATE, `properties/${id}`)
+          );
           return merged;
         }
         return item;
@@ -528,31 +782,29 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const addIp = (data: Omit<IpMatter, 'id'>) => {
     const isPatent = data.ipType === 'Patent';
     const prefix = isPatent ? 'PAT' : 'TM';
-    const nextNumber = ips.length + 13;
+    const nextNumber = allIps.length + 13;
     const newId = `${prefix}-2024-${String(nextNumber).padStart(3, '0')}`;
     const newIp: IpMatter = {
       ...data,
       id: newId,
+      ownerEmail: data.ownerEmail || activeUser.email.toLowerCase(),
+      assignedCounsel: data.assignedCounsel || `${activeUser.name} (In-House)`,
     };
-    setIps((prev) => [newIp, ...prev]);
+    setAllIps((prev) => [newIp, ...prev]);
 
-    if (user) {
-      setDoc(doc(db, 'ips', newId), newIp).catch((err) =>
-        handleFirestoreError(err, OperationType.CREATE, `ips/${newId}`)
-      );
-    }
+    setDoc(doc(db, 'ips', newId), newIp).catch((err) =>
+      handleFirestoreError(err, OperationType.CREATE, `ips/${newId}`)
+    );
   };
 
   const updateIp = (id: string, updates: Partial<IpMatter>) => {
-    setIps((prev) =>
+    setAllIps((prev) =>
       prev.map((item) => {
         if (item.id === id) {
           const merged = { ...item, ...updates };
-          if (user) {
-            setDoc(doc(db, 'ips', id), merged).catch((err) =>
-              handleFirestoreError(err, OperationType.UPDATE, `ips/${id}`)
-            );
-          }
+          setDoc(doc(db, 'ips', id), merged).catch((err) =>
+            handleFirestoreError(err, OperationType.UPDATE, `ips/${id}`)
+          );
           return merged;
         }
         return item;
@@ -578,28 +830,26 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const deleteMatter = (type: 'agreement' | 'lod' | 'property' | 'ip', id: string) => {
     if (type === 'agreement') {
-      setAgreements((prev) => prev.filter((i) => i.id !== id));
+      setAllAgreements((prev) => prev.filter((i) => i.id !== id));
     } else if (type === 'lod') {
-      setLods((prev) => prev.filter((i) => i.id !== id));
+      setAllLods((prev) => prev.filter((i) => i.id !== id));
     } else if (type === 'property') {
-      setProperties((prev) => prev.filter((i) => i.id !== id));
+      setAllProperties((prev) => prev.filter((i) => i.id !== id));
     } else if (type === 'ip') {
-      setIps((prev) => prev.filter((i) => i.id !== id));
+      setAllIps((prev) => prev.filter((i) => i.id !== id));
     }
 
-    if (user) {
-      const collectionName =
-        type === 'agreement'
-          ? 'agreements'
-          : type === 'lod'
-          ? 'lods'
-          : type === 'property'
-          ? 'properties'
-          : 'ips';
-      deleteDoc(doc(db, collectionName, id)).catch((err) =>
-        handleFirestoreError(err, OperationType.DELETE, `${collectionName}/${id}`)
-      );
-    }
+    const collectionName =
+      type === 'agreement'
+        ? 'agreements'
+        : type === 'lod'
+        ? 'lods'
+        : type === 'property'
+        ? 'properties'
+        : 'ips';
+    deleteDoc(doc(db, collectionName, id)).catch((err) =>
+      handleFirestoreError(err, OperationType.DELETE, `${collectionName}/${id}`)
+    );
 
     if (selectedMatter && selectedMatter.id === id) {
       setSelectedMatter(null);
@@ -608,10 +858,10 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const resetToDefaultData = () => {
-    setAgreements(INITIAL_AGREEMENTS);
-    setLods(INITIAL_LODS);
-    setProperties(INITIAL_PROPERTIES);
-    setIps(INITIAL_IPS);
+    setAllAgreements(INITIAL_AGREEMENTS);
+    setAllLods(INITIAL_LODS);
+    setAllProperties(INITIAL_PROPERTIES);
+    setAllIps(INITIAL_IPS);
     setSelectedMatter({ type: 'lod', id: 'LOD-2024-012' });
     setIsInspectionDrawerOpen(true);
     localStorage.removeItem(STORAGE_KEYS.AGREEMENTS);
@@ -620,7 +870,7 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.removeItem(STORAGE_KEYS.IPS);
   };
 
-  // Compute counts & SLA metrics
+  // Compute counts & SLA metrics for current scoped view
   const expiredOverdueCount = React.useMemo(() => {
     let count = 0;
     // Overdue LODs
@@ -703,11 +953,11 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Export audit log to CSV
   const exportAuditLogCSV = () => {
     const rows = [
-      ['Module', 'Matter ID', 'Title / Asset', 'Stage / Status', 'Assigned Counsel', 'Deadline / Expiry', 'Notes / Remarks'],
-      ...agreements.map((a) => ['Agreements', a.id, `"${a.title.replace(/"/g, '""')}"`, a.stage, a.assignedCounsel, a.expectedExpiryDate, `"${(a.notes || '').replace(/"/g, '""')}"`]),
-      ...lods.map((l) => ['LODs', l.id, `"${l.title.replace(/"/g, '""')}"`, l.stage, l.appointedLitigationFirm, l.responseDeadlineDate, `"${(l.responseNotes || '').replace(/"/g, '""')}"`]),
-      ...properties.map((p) => ['Property', p.id, `"${p.propertyName.replace(/"/g, '""')}"`, p.stage, p.externalLawFirm, p.targetCompletionDate, `"${(p.notes || '').replace(/"/g, '""')}"`]),
-      ...ips.map((i) => ['IP Trademarks', i.id, `"${i.trademarkName.replace(/"/g, '""')}"`, i.status, i.externalLawFirm, i.expiryRenewalDate, `"${(i.notes || '').replace(/"/g, '""')}"`]),
+      ['Module', 'Matter ID', 'Title / Asset', 'Stage / Status', 'Assigned Counsel', 'Owner Email', 'Deadline / Expiry', 'Notes / Remarks'],
+      ...agreements.map((a) => ['Agreements', a.id, `"${a.title.replace(/"/g, '""')}"`, a.stage, a.assignedCounsel, a.ownerEmail || '', a.expectedExpiryDate, `"${(a.notes || '').replace(/"/g, '""')}"`]),
+      ...lods.map((l) => ['LODs', l.id, `"${l.title.replace(/"/g, '""')}"`, l.stage, l.appointedLitigationFirm, l.ownerEmail || '', l.responseDeadlineDate, `"${(l.responseNotes || '').replace(/"/g, '""')}"`]),
+      ...properties.map((p) => ['Property', p.id, `"${p.propertyName.replace(/"/g, '""')}"`, p.stage, p.externalLawFirm, p.ownerEmail || '', p.targetCompletionDate, `"${(p.notes || '').replace(/"/g, '""')}"`]),
+      ...ips.map((i) => ['IP Trademarks', i.id, `"${i.trademarkName.replace(/"/g, '""')}"`, i.status, i.externalLawFirm, i.ownerEmail || '', i.expiryRenewalDate, `"${(i.notes || '').replace(/"/g, '""')}"`]),
     ];
 
     const csvContent = 'data:text/csv;charset=utf-8,' + rows.map((e) => e.join(',')).join('\n');
@@ -727,18 +977,35 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         lods,
         properties,
         ips,
+        allAgreements,
+        allLods,
+        allProperties,
+        allIps,
+        userScope,
+        setUserScope,
         activeTab,
         setActiveTab,
         activeFilter,
         setActiveFilter,
         searchQuery,
         setSearchQuery,
+        isAuthenticated,
+        setIsAuthenticated,
         user,
+        activeUser,
+        setActiveUser,
+        teamCounsels: DEFAULT_TEAM_COUNSELS,
+        signInCounsel,
+        seedTeammateSampleData,
+        isAuthModalOpen,
+        setIsAuthModalOpen,
         isAuthReady,
         isSyncingWithFirebase,
         signIn,
         signOut,
         switchAccount,
+        signUp,
+        signInWithCredentials,
         saveLink,
         savedLinks,
         userProfiles,
