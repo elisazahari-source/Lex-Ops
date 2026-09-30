@@ -10,7 +10,7 @@
 [![Firebase](https://img.shields.io/badge/Firebase-Auth%20%26%20Firestore-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![License](https://img.shields.io/badge/License-Proprietary-red.svg)](#)
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-lexops--inhousetracker.ai.studio-22c55e?style=for-the-badge&logo=google-chrome&logoColor=white)](https://lexops-inhousetracker.ai.studio)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-lexops--inhouselegaltracker.ai.studio-22c55e?style=for-the-badge&logo=google-chrome&logoColor=white)](https://lexops-inhouselegaltracker.ai.studio)
 
 ---
 
@@ -19,7 +19,7 @@
 Access the live cloud deployment to explore and test the platform immediately:
 
 🔗 **Web Application URL:**  
-👉 **[https://lexops-inhousetracker.ai.studio](https://lexops-inhousetracker.ai.studio)**
+👉 **[https://lexops-inhouselegaltracker.ai.studio](https://lexops-inhouselegaltracker.ai.studio)**
 
 ### 💡 Quick Testing Options (Front Page Demo Logins):
 - **Existing User Demo (Has Existing Data)**:
