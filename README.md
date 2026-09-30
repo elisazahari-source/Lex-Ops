@@ -42,7 +42,7 @@ The platform centralizes the end-to-end legal lifecycle—from initial **Legal D
 
 ### 3. ⚖️ Letter of Demand (LOD) & Dispute Tracker
 - **Statutory Defense Countdown**: 7-day, 14-day statutory deadlines, or custom response windows calculated against date of service.
-- **In-House vs. External Litigation Handover**: Assign matters to internal counsel or escalate directly to appointed external litigation firms (e.g., Messrs. Skrine, Messrs. Baker McKenzie, or custom specified firms).
+- **In-House vs. External Litigation Handover**: Assign matters to internal counsel or escalate directly to appointed external legal firms.
 - **Fact-Finding Audit**: Track internal stakeholder inquiries (e.g., CTO, Head of Procurement, CFO) and log adverse counsel allegations.
 
 ### 4. 🏢 Property & Real Estate Conveyancing Tracker
