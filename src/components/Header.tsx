@@ -16,6 +16,8 @@ import {
   Check,
   PanelLeft,
   PanelLeftClose,
+  LogOut,
+  User as UserIcon,
 } from 'lucide-react';
 import { ActiveTab } from '../types/legal';
 
@@ -30,6 +32,8 @@ export const Header: React.FC = () => {
     setIsNewIntakeModalOpen,
     isSidebarCollapsed,
     setIsSidebarCollapsed,
+    activeUser,
+    signOut,
   } = useLegal();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -257,8 +261,34 @@ export const Header: React.FC = () => {
         )}
       </div>
 
-      {/* Right Actions: Export Audit Log and + New Matter */}
+      {/* Right Actions: Counsel Profile & Log Out, Export Audit Log, and + New Matter */}
       <div className="flex items-center gap-2 shrink-0 ml-2">
+        {/* Active Counsel Account Pill & Log Out Button */}
+        <div className="flex items-center gap-2 bg-white px-2.5 py-1 rounded-md border border-slate-300 shadow-2xs">
+          <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 font-bold text-[10.5px] flex items-center justify-center shrink-0">
+            {activeUser?.name ? activeUser.name[0].toUpperCase() : 'U'}
+          </div>
+
+          <div className="min-w-0 hidden md:block text-left">
+            <span className="text-[11.5px] font-bold text-slate-900 max-w-[120px] truncate block leading-tight">
+              {activeUser?.name || 'Peguam Korporat'}
+            </span>
+            <span className="text-[9.5px] text-slate-500 font-medium truncate block leading-tight max-w-[120px]">
+              {activeUser?.email || ''}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={signOut}
+            title="Log Keluar / Sign Out dari akaun peribadi anda"
+            className="flex items-center gap-1 text-[11.5px] font-semibold text-slate-600 hover:text-red-700 hover:bg-red-50 px-2 py-0.5 rounded cursor-pointer transition-colors border-l border-slate-200 pl-2 ml-0.5"
+          >
+            <LogOut className="w-3.5 h-3.5 text-slate-500 group-hover:text-red-600" />
+            <span className="hidden sm:inline">Log Keluar</span>
+          </button>
+        </div>
+
         <button
           onClick={exportAuditLogCSV}
           title="Export CSV Audit Trail"

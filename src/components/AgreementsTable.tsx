@@ -11,6 +11,7 @@ import {
   Pencil,
   Check,
   X,
+  Sparkles,
 } from 'lucide-react';
 import { formatCurrency, getDaysRemaining, formatDateDisplay, calculateTAT } from '../utils/dateUtils';
 import { AgreementMatter, AgreementStage } from '../types/legal';
@@ -35,6 +36,7 @@ export const AgreementsTable: React.FC = () => {
     setIsInspectionDrawerOpen,
     setIsNewIntakeModalOpen,
     setNewIntakeDefaultType,
+    seedStarterTemplate,
   } = useLegal();
 
   const handleStageChange = (e: React.ChangeEvent<HTMLSelectElement>, id: string) => {
@@ -86,7 +88,10 @@ export const AgreementsTable: React.FC = () => {
     }
 
     if (activeFilter === 'pending_finance') {
-      return agr.invoice?.paymentStatus === 'Submitted to Finance';
+      return (
+        agr.invoice?.paymentStatus === 'Submitted to Finance' ||
+        agr.invoice?.paymentStatus === 'Invoice Received'
+      );
     }
 
     return true;

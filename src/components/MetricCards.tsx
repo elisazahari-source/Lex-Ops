@@ -46,21 +46,31 @@ export const MetricCards: React.FC = () => {
     ips.forEach((i) => checkInv(i.invoice));
 
     return {
-      totalCount: totalInvoicesAwaitingAP || 4,
-      totalAmount: totalInvoicesAmountMYR || 142500,
-      agedOver14d: agedOver14dCount || 2,
+      totalCount: totalInvoicesAwaitingAP,
+      totalAmount: totalInvoicesAmountMYR,
+      agedOver14d: agedOver14dCount,
     };
   }, [agreements, lods, properties, ips]);
 
-  // Total active matters count across pipeline
+  // Total active matters count across pipeline (uncompleted items)
   const totalActiveMatters = React.useMemo(() => {
     const activeAgr = agreements.filter((a) => a.stage !== 'Executed / Signed').length;
     const activeLod = lods.filter((l) => l.stage !== 'Response Sent - Closed').length;
     const activeProp = properties.filter((p) => p.stage !== 'Stamped-Completed').length;
     const activeIp = ips.filter((i) => i.status !== 'Registered').length;
-    const sum = activeAgr + activeLod + activeProp + activeIp;
-    return sum > 0 ? sum : 18;
+    return activeAgr + activeLod + activeProp + activeIp;
   }, [agreements, lods, properties, ips]);
+
+  // Calculate live dynamic average TAT for executed agreements
+  const avgTatDays = React.useMemo(() => {
+    const executed = agreements.filter(
+      (a) => a.stage === 'Executed / Signed' && a.tatDaysElapsed > 0
+    );
+    if (executed.length === 0) return 0;
+    return Math.round(
+      executed.reduce((acc, curr) => acc + curr.tatDaysElapsed, 0) / executed.length
+    );
+  }, [agreements]);
 
   // Click handlers
   const handleCard1Click = () => {
@@ -130,8 +140,10 @@ export const MetricCards: React.FC = () => {
                 EXPIRED / OVERDUE
               </span>
             </div>
-            <p className="text-[11.5px] text-slate-500 font-normal">
-              LOD Response &amp; Expired Contracts
+            <p className="text-[11px] text-slate-500 font-normal truncate max-w-[210px]">
+              {counts.expiredOverdue === 0
+                ? 'All deadlines on track'
+                : `${counts.overdueBreakdown?.lods || 0} LOD • ${counts.overdueBreakdown?.agreements || 0} AGR • ${counts.overdueBreakdown?.properties || 0} PROP • ${counts.overdueBreakdown?.ips || 0} IP`}
             </p>
           </div>
           <div className="w-7 h-7 rounded-lg bg-red-50 border border-red-100 flex items-center justify-center text-red-600 shrink-0">
@@ -153,7 +165,7 @@ export const MetricCards: React.FC = () => {
             onClick={handleOverdueLink}
             className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-700 hover:text-red-800 hover:underline group-hover:translate-x-0.5 transition-transform cursor-pointer"
           >
-            <span>View LOD SLA Breaches</span>
+            <span>Filter Overdue ({counts.expiredOverdue})</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -183,8 +195,10 @@ export const MetricCards: React.FC = () => {
                 EXPIRING SOON (&lt;30 DAYS)
               </span>
             </div>
-            <p className="text-[11.5px] text-slate-500 font-normal">
-              Trademarks &amp; Leases
+            <p className="text-[11px] text-slate-500 font-normal truncate max-w-[210px]">
+              {counts.expiringSoon === 0
+                ? 'No upcoming 30-day expiries'
+                : `${counts.expiringBreakdown?.agreements || 0} AGR • ${counts.expiringBreakdown?.ips || 0} IP • ${counts.expiringBreakdown?.properties || 0} PROP • ${counts.expiringBreakdown?.lods || 0} LOD`}
             </p>
           </div>
           <div className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
@@ -204,9 +218,9 @@ export const MetricCards: React.FC = () => {
 
           <button
             onClick={handleExpiringLink}
-            className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 hover:text-amber-800 hover:underline group-hover:translate-x-0.5 transition-transform cursor-pointer"
+            className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 hover:text-amber-700 hover:underline group-hover:translate-x-0.5 transition-transform cursor-pointer"
           >
-            <span>Review timeline</span>
+            <span>Filter Expiring ({counts.expiringSoon})</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -260,7 +274,11 @@ export const MetricCards: React.FC = () => {
             title="Action Required: Invoices submitted to Finance Accounts Payable (AP) over 14 days ago awaiting disbursement"
             className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 hover:underline group-hover:translate-x-0.5 transition-transform cursor-pointer"
           >
-            <span>{financeStats.agedOver14d} Aged &gt;14d (Action Required)</span>
+            <span>
+              {financeStats.agedOver14d > 0
+                ? `${financeStats.agedOver14d} Aged >14d (Action Required)`
+                : 'All payments current'}
+            </span>
             <ArrowRight className="w-3.5 h-3.5 text-emerald-600" />
           </button>
         </div>
@@ -287,7 +305,7 @@ export const MetricCards: React.FC = () => {
               </span>
             </div>
             <p className="text-[11.5px] text-slate-500 font-normal">
-              Avg TAT: 6.2d • 94% On-Track
+              Avg TAT: {avgTatDays}d • {totalActiveMatters > 0 ? `${totalActiveMatters} active in pipeline` : 'Clean workspace'}
             </p>
           </div>
           <div className="w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">

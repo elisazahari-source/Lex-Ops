@@ -74,11 +74,14 @@ export const LodTrackerTable: React.FC = () => {
 
     if (activeFilter === 'expiring_soon') {
       const days = getDaysRemaining(lod.responseDeadlineDate);
-      return days !== null && days > 0 && days <= 7;
+      return days !== null && days > 0 && days <= 30 && lod.stage !== 'Response Sent - Closed';
     }
 
     if (activeFilter === 'pending_finance') {
-      return lod.invoice?.paymentStatus === 'Submitted to Finance';
+      return (
+        lod.invoice?.paymentStatus === 'Submitted to Finance' ||
+        lod.invoice?.paymentStatus === 'Invoice Received'
+      );
     }
 
     return true;

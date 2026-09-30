@@ -80,7 +80,10 @@ export const IpTrademarksTable: React.FC = () => {
     }
 
     if (activeFilter === 'pending_finance') {
-      return ip.invoice?.paymentStatus === 'Submitted to Finance';
+      return (
+        ip.invoice?.paymentStatus === 'Submitted to Finance' ||
+        ip.invoice?.paymentStatus === 'Invoice Received'
+      );
     }
 
     return true;

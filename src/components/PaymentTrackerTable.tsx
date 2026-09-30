@@ -32,6 +32,8 @@ export const PaymentTrackerTable: React.FC = () => {
     ips,
     updateInvoice,
     searchQuery,
+    activeFilter,
+    setActiveFilter,
     setSelectedMatter,
     setIsInspectionDrawerOpen,
   } = useLegal();
@@ -87,17 +89,37 @@ export const PaymentTrackerTable: React.FC = () => {
     }
   });
 
-  // Filter based on search query
+  // Filter based on search query and activeFilter
   const filtered = allInvoices.filter((item) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      item.matterId.toLowerCase().includes(q) ||
-      item.matterTitle.toLowerCase().includes(q) ||
-      item.invoice.invoiceNumber.toLowerCase().includes(q) ||
-      item.invoice.lawFirm.toLowerCase().includes(q) ||
-      item.invoice.paymentStatus.toLowerCase().includes(q)
-    );
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchesSearch =
+        item.matterId.toLowerCase().includes(q) ||
+        item.matterTitle.toLowerCase().includes(q) ||
+        item.invoice.invoiceNumber.toLowerCase().includes(q) ||
+        item.invoice.lawFirm.toLowerCase().includes(q) ||
+        item.invoice.paymentStatus.toLowerCase().includes(q);
+      if (!matchesSearch) return false;
+    }
+
+    if (activeFilter === 'pending_finance') {
+      return (
+        item.invoice.paymentStatus === 'Submitted to Finance' ||
+        item.invoice.paymentStatus === 'Invoice Received'
+      );
+    }
+
+    if (activeFilter === 'expired_overdue') {
+      if (!item.invoice.dateSubmittedToFinance) return false;
+      const days = getDaysPendingWithFinance(item.invoice.dateSubmittedToFinance);
+      return (
+        days > 14 &&
+        (item.invoice.paymentStatus === 'Submitted to Finance' ||
+          item.invoice.paymentStatus === 'Invoice Received')
+      );
+    }
+
+    return true;
   });
 
   const [editingRemarkId, setEditingRemarkId] = useState<string | null>(null);

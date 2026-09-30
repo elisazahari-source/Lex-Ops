@@ -17,6 +17,8 @@ import { NewIntakeModal } from './components/NewIntakeModal';
 import { QuickLdrfModal } from './components/QuickLdrfModal';
 import { DocumentationModal } from './components/DocumentationModal';
 import { GoogleDriveModal } from './components/GoogleDriveModal';
+import { AuthScreen } from './components/AuthScreen';
+import { NewUserOnboardingBanner } from './components/NewUserOnboardingBanner';
 import { PanelRightOpen, X } from 'lucide-react';
 
 const MainLayout: React.FC = () => {
@@ -28,7 +30,12 @@ const MainLayout: React.FC = () => {
     setSelectedMatter,
     isGoogleDriveOpen,
     setIsGoogleDriveOpen,
+    isAuthenticated,
   } = useLegal();
+
+  if (!isAuthenticated) {
+    return <AuthScreen />;
+  }
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-[#f8f9ff] flex flex-col font-sans text-[#0b1c30]">
@@ -42,6 +49,9 @@ const MainLayout: React.FC = () => {
 
         {/* Central Content Canvas */}
         <main className="flex-1 min-w-0 min-h-0 overflow-y-auto p-3.5 lg:p-4.5 flex flex-col">
+          {/* New User Onboarding & Sample Loader Banner */}
+          <NewUserOnboardingBanner />
+
           {/* Top 2 Alert Metric Cards */}
           <MetricCards />
 

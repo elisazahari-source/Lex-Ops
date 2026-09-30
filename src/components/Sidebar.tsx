@@ -14,6 +14,7 @@ import {
   Scale,
   Building2,
   BookmarkCheck,
+  LogOut,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -25,6 +26,7 @@ export const Sidebar: React.FC = () => {
     setActiveFilter,
     isSidebarCollapsed,
     setIsSidebarCollapsed,
+    signOut,
   } = useLegal();
 
   // If collapsed: render sleek icon-only strip with unhide button
@@ -174,6 +176,14 @@ export const Sidebar: React.FC = () => {
             className="w-8 h-8 rounded-md text-slate-500 hover:text-slate-800 hover:bg-slate-300/60 flex items-center justify-center transition-colors cursor-pointer"
           >
             <BookOpen className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={signOut}
+            title="Log Keluar / Log Out"
+            className="w-8 h-8 rounded-md text-slate-500 hover:text-red-700 hover:bg-red-100/60 flex items-center justify-center transition-colors cursor-pointer"
+          >
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
       </aside>
@@ -375,6 +385,14 @@ export const Sidebar: React.FC = () => {
         >
           <BookOpen className="w-4 h-4 text-slate-500" />
           <span>System Documentation</span>
+        </button>
+
+        <button
+          onClick={signOut}
+          className="w-full flex items-center gap-2 px-2.5 py-1.5 text-[12px] font-semibold text-slate-700 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
+        >
+          <LogOut className="w-4 h-4 text-slate-500 group-hover:text-red-600" />
+          <span>Log Keluar (Log Out)</span>
         </button>
 
         <div className="pt-1.5 px-2 text-[10px] font-mono text-slate-500">

@@ -68,11 +68,14 @@ export const PropertyMattersTable: React.FC = () => {
 
     if (activeFilter === 'expiring_soon') {
       const days = getDaysRemaining(prop.targetCompletionDate);
-      return days !== null && days > 0 && days <= 30;
+      return days !== null && days > 0 && days <= 30 && prop.stage !== 'Stamped-Completed';
     }
 
     if (activeFilter === 'pending_finance') {
-      return prop.invoice?.paymentStatus === 'Submitted to Finance';
+      return (
+        prop.invoice?.paymentStatus === 'Submitted to Finance' ||
+        prop.invoice?.paymentStatus === 'Invoice Received'
+      );
     }
 
     return true;

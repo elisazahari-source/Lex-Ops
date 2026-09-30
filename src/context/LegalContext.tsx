@@ -126,6 +126,10 @@ interface LegalContextType {
   setActiveUser: (user: ActiveCounselUser) => void;
   teamCounsels: ActiveCounselUser[];
   signInCounsel: (email: string, name?: string, role?: string, department?: string) => void;
+  signInAsNewUserDemo: () => void;
+  signInAsExistingUserDemo: () => void;
+  seedStarterTemplate: () => void;
+  clearAllPersonalMatters: () => void;
   seedTeammateSampleData: (email: string, name: string) => void;
   userProfiles: AppUserProfile[];
   savedLinks: any[];
@@ -187,6 +191,18 @@ interface LegalContextType {
     lateFinanceInvoices: number;
     lateFinanceAmountMYR: number;
     externalLawFirms: number;
+    overdueBreakdown: {
+      agreements: number;
+      lods: number;
+      properties: number;
+      ips: number;
+    };
+    expiringBreakdown: {
+      agreements: number;
+      lods: number;
+      properties: number;
+      ips: number;
+    };
   };
 }
 
@@ -200,67 +216,89 @@ const STORAGE_KEYS = {
 };
 
 export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [allAgreements, setAllAgreements] = useState<AgreementMatter[]>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEYS.AGREEMENTS);
-      if (stored) return JSON.parse(stored);
-    } catch {
-      // fallback
-    }
-    return INITIAL_AGREEMENTS;
-  });
-
-  const [allLods, setAllLods] = useState<LodMatter[]>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEYS.LODS);
-      if (stored) return JSON.parse(stored);
-    } catch {
-      // fallback
-    }
-    return INITIAL_LODS;
-  });
-
-  const [allProperties, setAllProperties] = useState<PropertyMatter[]>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEYS.PROPERTIES);
-      if (stored) return JSON.parse(stored);
-    } catch {
-      // fallback
-    }
-    return INITIAL_PROPERTIES;
-  });
-
-  const [allIps, setAllIps] = useState<IpMatter[]>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEYS.IPS);
-      if (stored) return JSON.parse(stored);
-    } catch {
-      // fallback
-    }
-    return INITIAL_IPS;
-  });
-
-  // Multi-user personal vs team view scope
-  const [userScope, setUserScope] = useState<'personal' | 'team'>('personal');
-
   // Multi-user authentication session
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem('lexops_auth_session') === 'true';
+  });
 
   // Firebase Auth State
   const [user, setUser] = useState<User | null>(null);
-  const [activeUser, setActiveUser] = useState<ActiveCounselUser>(DEFAULT_TEAM_COUNSELS[0]);
+  const [activeUser, setActiveUser] = useState<ActiveCounselUser>(() => {
+    try {
+      const saved = localStorage.getItem('lexops_active_counsel');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return DEFAULT_TEAM_COUNSELS[0];
+  });
+
+  const currentUserId = user?.uid || (activeUser?.id ? activeUser.id : null);
+
+  // Per-user matters: When creating a new account, matters are [] (blank tracker)
+  const [agreements, setAgreements] = useState<AgreementMatter[]>(() => {
+    try {
+      const savedUser = localStorage.getItem('lexops_active_counsel');
+      if (savedUser) {
+        const u = JSON.parse(savedUser);
+        const stored = localStorage.getItem(`${STORAGE_KEYS.AGREEMENTS}_${u.id}`);
+        if (stored) return JSON.parse(stored);
+        if (u.email?.toLowerCase() === 'elisa.zahari@mediaprima.com.my') {
+          return INITIAL_AGREEMENTS;
+        }
+      }
+    } catch {}
+    return [];
+  });
+
+  const [lods, setLods] = useState<LodMatter[]>(() => {
+    try {
+      const savedUser = localStorage.getItem('lexops_active_counsel');
+      if (savedUser) {
+        const u = JSON.parse(savedUser);
+        const stored = localStorage.getItem(`${STORAGE_KEYS.LODS}_${u.id}`);
+        if (stored) return JSON.parse(stored);
+        if (u.email?.toLowerCase() === 'elisa.zahari@mediaprima.com.my') {
+          return INITIAL_LODS;
+        }
+      }
+    } catch {}
+    return [];
+  });
+
+  const [properties, setProperties] = useState<PropertyMatter[]>(() => {
+    try {
+      const savedUser = localStorage.getItem('lexops_active_counsel');
+      if (savedUser) {
+        const u = JSON.parse(savedUser);
+        const stored = localStorage.getItem(`${STORAGE_KEYS.PROPERTIES}_${u.id}`);
+        if (stored) return JSON.parse(stored);
+        if (u.email?.toLowerCase() === 'elisa.zahari@mediaprima.com.my') {
+          return INITIAL_PROPERTIES;
+        }
+      }
+    } catch {}
+    return [];
+  });
+
+  const [ips, setIps] = useState<IpMatter[]>(() => {
+    try {
+      const savedUser = localStorage.getItem('lexops_active_counsel');
+      if (savedUser) {
+        const u = JSON.parse(savedUser);
+        const stored = localStorage.getItem(`${STORAGE_KEYS.IPS}_${u.id}`);
+        if (stored) return JSON.parse(stored);
+        if (u.email?.toLowerCase() === 'elisa.zahari@mediaprima.com.my') {
+          return INITIAL_IPS;
+        }
+      }
+    } catch {}
+    return [];
+  });
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [savedLinks, setSavedLinks] = useState<any[]>([]);
   const [userProfiles, setUserProfiles] = useState<AppUserProfile[]>([]);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [isSyncingWithFirebase, setIsSyncingWithFirebase] = useState(false);
-
-  // Full unified matters
-  const agreements = allAgreements;
-  const lods = allLods;
-  const properties = allProperties;
-  const ips = allIps;
 
   // Auth observer
   useEffect(() => {
@@ -309,6 +347,44 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       avatarUrl: existing?.avatarUrl,
     };
     setActiveUser(counselUser);
+    setIsAuthenticated(true);
+    localStorage.setItem('lexops_auth_session', 'true');
+    localStorage.setItem('lexops_active_counsel', JSON.stringify(counselUser));
+  };
+
+  const signInAsNewUserDemo = () => {
+    const counselUser: ActiveCounselUser = {
+      id: 'demo-new-user-clean',
+      name: 'Nurul Aisyah',
+      email: 'nurul.aisyah@company.com',
+      role: 'Junior Legal Counsel',
+      department: 'Corporate Legal Operations',
+    };
+    setActiveUser(counselUser);
+    setAgreements([]);
+    setLods([]);
+    setProperties([]);
+    setIps([]);
+    setSelectedMatter(null);
+    setIsAuthenticated(true);
+    localStorage.setItem('lexops_auth_session', 'true');
+    localStorage.setItem('lexops_active_counsel', JSON.stringify(counselUser));
+  };
+
+  const signInAsExistingUserDemo = () => {
+    const counselUser: ActiveCounselUser = {
+      id: 'counsel-elisa',
+      name: 'Elisa Zahari',
+      email: 'elisa.zahari@mediaprima.com.my',
+      role: 'Lead Legal Counsel (Admin)',
+      department: 'Corporate Legal Operations',
+    };
+    setActiveUser(counselUser);
+    setAgreements(INITIAL_AGREEMENTS);
+    setLods(INITIAL_LODS);
+    setProperties(INITIAL_PROPERTIES);
+    setIps(INITIAL_IPS);
+    setSelectedMatter(null);
     setIsAuthenticated(true);
     localStorage.setItem('lexops_auth_session', 'true');
     localStorage.setItem('lexops_active_counsel', JSON.stringify(counselUser));
@@ -399,15 +475,17 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       notes: `Registered trademark portfolio under ${name}.`,
     };
 
-    setAllAgreements((prev) => [starterAgreement, ...prev]);
-    setAllLods((prev) => [starterLod, ...prev]);
-    setAllProperties((prev) => [starterProperty, ...prev]);
-    setAllIps((prev) => [starterIp, ...prev]);
+    setAgreements((prev) => [starterAgreement, ...prev]);
+    setLods((prev) => [starterLod, ...prev]);
+    setProperties((prev) => [starterProperty, ...prev]);
+    setIps((prev) => [starterIp, ...prev]);
 
-    setDoc(doc(db, 'agreements', starterAgreement.id), starterAgreement).catch(console.warn);
-    setDoc(doc(db, 'lods', starterLod.id), starterLod).catch(console.warn);
-    setDoc(doc(db, 'properties', starterProperty.id), starterProperty).catch(console.warn);
-    setDoc(doc(db, 'ips', starterIp.id), starterIp).catch(console.warn);
+    if (currentUserId) {
+      setDoc(doc(db, 'users', currentUserId, 'agreements', starterAgreement.id), starterAgreement).catch(console.warn);
+      setDoc(doc(db, 'users', currentUserId, 'lods', starterLod.id), starterLod).catch(console.warn);
+      setDoc(doc(db, 'users', currentUserId, 'properties', starterProperty.id), starterProperty).catch(console.warn);
+      setDoc(doc(db, 'users', currentUserId, 'ips', starterIp.id), starterIp).catch(console.warn);
+    }
   };
 
   const signIn = async () => {
@@ -480,84 +558,112 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  // Real-time Firestore synchronization
+  // Real-time Firestore synchronization per isolated user
   useEffect(() => {
+    if (!currentUserId || !isAuthenticated) {
+      setIsSyncingWithFirebase(false);
+      return;
+    }
+
     setIsSyncingWithFirebase(true);
 
+    const isElisa = (activeUser?.email || '').toLowerCase() === 'elisa.zahari@mediaprima.com.my';
+
     const unsubAgreements = onSnapshot(
-      collection(db, 'agreements'),
+      collection(db, 'users', currentUserId, 'agreements'),
       (snapshot) => {
         if (!snapshot.empty) {
           const remote = snapshot.docs.map((d) => d.data() as AgreementMatter);
-          setAllAgreements(remote);
+          setAgreements(remote);
         } else {
-          // Initial seed
-          allAgreements.forEach((agr) => {
-            setDoc(doc(db, 'agreements', agr.id), agr).catch((err) =>
-              handleFirestoreError(err, OperationType.WRITE, `agreements/${agr.id}`)
-            );
-          });
+          // If Lead Counsel Elisa and her collection is completely empty, initialize with default templates
+          if (isElisa) {
+            INITIAL_AGREEMENTS.forEach((agr) => {
+              setDoc(doc(db, 'users', currentUserId, 'agreements', agr.id), agr).catch((err) =>
+                handleFirestoreError(err, OperationType.WRITE, `users/${currentUserId}/agreements/${agr.id}`)
+              );
+            });
+            setAgreements(INITIAL_AGREEMENTS);
+          } else {
+            // For any other new user: stay clean and blank!
+            setAgreements([]);
+          }
         }
       },
       (error) => {
-        handleFirestoreError(error, OperationType.GET, 'agreements');
+        handleFirestoreError(error, OperationType.GET, `users/${currentUserId}/agreements`);
       }
     );
 
     const unsubLods = onSnapshot(
-      collection(db, 'lods'),
+      collection(db, 'users', currentUserId, 'lods'),
       (snapshot) => {
         if (!snapshot.empty) {
           const remote = snapshot.docs.map((d) => d.data() as LodMatter);
-          setAllLods(remote);
+          setLods(remote);
         } else {
-          allLods.forEach((lod) => {
-            setDoc(doc(db, 'lods', lod.id), lod).catch((err) =>
-              handleFirestoreError(err, OperationType.WRITE, `lods/${lod.id}`)
-            );
-          });
+          if (isElisa) {
+            INITIAL_LODS.forEach((lod) => {
+              setDoc(doc(db, 'users', currentUserId, 'lods', lod.id), lod).catch((err) =>
+                handleFirestoreError(err, OperationType.WRITE, `users/${currentUserId}/lods/${lod.id}`)
+              );
+            });
+            setLods(INITIAL_LODS);
+          } else {
+            setLods([]);
+          }
         }
       },
       (error) => {
-        handleFirestoreError(error, OperationType.GET, 'lods');
+        handleFirestoreError(error, OperationType.GET, `users/${currentUserId}/lods`);
       }
     );
 
     const unsubProperties = onSnapshot(
-      collection(db, 'properties'),
+      collection(db, 'users', currentUserId, 'properties'),
       (snapshot) => {
         if (!snapshot.empty) {
           const remote = snapshot.docs.map((d) => d.data() as PropertyMatter);
-          setAllProperties(remote);
+          setProperties(remote);
         } else {
-          allProperties.forEach((prop) => {
-            setDoc(doc(db, 'properties', prop.id), prop).catch((err) =>
-              handleFirestoreError(err, OperationType.WRITE, `properties/${prop.id}`)
-            );
-          });
+          if (isElisa) {
+            INITIAL_PROPERTIES.forEach((prop) => {
+              setDoc(doc(db, 'users', currentUserId, 'properties', prop.id), prop).catch((err) =>
+                handleFirestoreError(err, OperationType.WRITE, `users/${currentUserId}/properties/${prop.id}`)
+              );
+            });
+            setProperties(INITIAL_PROPERTIES);
+          } else {
+            setProperties([]);
+          }
         }
       },
       (error) => {
-        handleFirestoreError(error, OperationType.GET, 'properties');
+        handleFirestoreError(error, OperationType.GET, `users/${currentUserId}/properties`);
       }
     );
 
     const unsubIps = onSnapshot(
-      collection(db, 'ips'),
+      collection(db, 'users', currentUserId, 'ips'),
       (snapshot) => {
         if (!snapshot.empty) {
           const remote = snapshot.docs.map((d) => d.data() as IpMatter);
-          setAllIps(remote);
+          setIps(remote);
         } else {
-          allIps.forEach((ip) => {
-            setDoc(doc(db, 'ips', ip.id), ip).catch((err) =>
-              handleFirestoreError(err, OperationType.WRITE, `ips/${ip.id}`)
-            );
-          });
+          if (isElisa) {
+            INITIAL_IPS.forEach((ip) => {
+              setDoc(doc(db, 'users', currentUserId, 'ips', ip.id), ip).catch((err) =>
+                handleFirestoreError(err, OperationType.WRITE, `users/${currentUserId}/ips/${ip.id}`)
+              );
+            });
+            setIps(INITIAL_IPS);
+          } else {
+            setIps([]);
+          }
         }
       },
       (error) => {
-        handleFirestoreError(error, OperationType.GET, 'ips');
+        handleFirestoreError(error, OperationType.GET, `users/${currentUserId}/ips`);
       }
     );
 
@@ -594,7 +700,7 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       unsubUsers();
       setIsSyncingWithFirebase(false);
     };
-  }, []);
+  }, [currentUserId, isAuthenticated, activeUser?.email]);
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
   const [activeFilter, setActiveFilter] = useState<AlertFilter>('all');
@@ -613,38 +719,42 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isGoogleDriveOpen, setIsGoogleDriveOpen] = useState<boolean>(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
 
-  // Sync to local storage
+  // Sync to local storage per user
   useEffect(() => {
+    if (!currentUserId) return;
     try {
-      localStorage.setItem(STORAGE_KEYS.AGREEMENTS, JSON.stringify(allAgreements));
+      localStorage.setItem(`${STORAGE_KEYS.AGREEMENTS}_${currentUserId}`, JSON.stringify(agreements));
     } catch (e) {
       console.error(e);
     }
-  }, [allAgreements]);
+  }, [agreements, currentUserId]);
 
   useEffect(() => {
+    if (!currentUserId) return;
     try {
-      localStorage.setItem(STORAGE_KEYS.LODS, JSON.stringify(allLods));
+      localStorage.setItem(`${STORAGE_KEYS.LODS}_${currentUserId}`, JSON.stringify(lods));
     } catch (e) {
       console.error(e);
     }
-  }, [allLods]);
+  }, [lods, currentUserId]);
 
   useEffect(() => {
+    if (!currentUserId) return;
     try {
-      localStorage.setItem(STORAGE_KEYS.PROPERTIES, JSON.stringify(allProperties));
+      localStorage.setItem(`${STORAGE_KEYS.PROPERTIES}_${currentUserId}`, JSON.stringify(properties));
     } catch (e) {
       console.error(e);
     }
-  }, [allProperties]);
+  }, [properties, currentUserId]);
 
   useEffect(() => {
+    if (!currentUserId) return;
     try {
-      localStorage.setItem(STORAGE_KEYS.IPS, JSON.stringify(allIps));
+      localStorage.setItem(`${STORAGE_KEYS.IPS}_${currentUserId}`, JSON.stringify(ips));
     } catch (e) {
       console.error(e);
     }
-  }, [allIps]);
+  }, [ips, currentUserId]);
 
   // Keyboard shortcut ⌘K or Ctrl+K for search
   useEffect(() => {
@@ -663,7 +773,7 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Recalculate TAT for agreements upon load
   useEffect(() => {
-    setAllAgreements((prev) =>
+    setAgreements((prev) =>
       prev.map((agr) => ({
         ...agr,
         tatDaysElapsed: calculateTAT(agr.requestDate, agr.executionDate),
@@ -671,8 +781,59 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     );
   }, []);
 
+  const seedStarterTemplate = () => {
+    if (!currentUserId) return;
+    setAgreements(INITIAL_AGREEMENTS);
+    setLods(INITIAL_LODS);
+    setProperties(INITIAL_PROPERTIES);
+    setIps(INITIAL_IPS);
+
+    INITIAL_AGREEMENTS.forEach((agr) => {
+      setDoc(doc(db, 'users', currentUserId, 'agreements', agr.id), agr).catch(console.warn);
+    });
+    INITIAL_LODS.forEach((lod) => {
+      setDoc(doc(db, 'users', currentUserId, 'lods', lod.id), lod).catch(console.warn);
+    });
+    INITIAL_PROPERTIES.forEach((prop) => {
+      setDoc(doc(db, 'users', currentUserId, 'properties', prop.id), prop).catch(console.warn);
+    });
+    INITIAL_IPS.forEach((ip) => {
+      setDoc(doc(db, 'users', currentUserId, 'ips', ip.id), ip).catch(console.warn);
+    });
+  };
+
+  const clearAllPersonalMatters = () => {
+    if (!currentUserId) return;
+    setAgreements([]);
+    setLods([]);
+    setProperties([]);
+    setIps([]);
+    setSelectedMatter(null);
+
+    // Clean up in Firestore
+    agreements.forEach((agr) => {
+      deleteDoc(doc(db, 'users', currentUserId, 'agreements', agr.id)).catch(console.warn);
+    });
+    lods.forEach((lod) => {
+      deleteDoc(doc(db, 'users', currentUserId, 'lods', lod.id)).catch(console.warn);
+    });
+    properties.forEach((prop) => {
+      deleteDoc(doc(db, 'users', currentUserId, 'properties', prop.id)).catch(console.warn);
+    });
+    ips.forEach((ip) => {
+      deleteDoc(doc(db, 'users', currentUserId, 'ips', ip.id)).catch(console.warn);
+    });
+
+    try {
+      localStorage.removeItem(`${STORAGE_KEYS.AGREEMENTS}_${currentUserId}`);
+      localStorage.removeItem(`${STORAGE_KEYS.LODS}_${currentUserId}`);
+      localStorage.removeItem(`${STORAGE_KEYS.PROPERTIES}_${currentUserId}`);
+      localStorage.removeItem(`${STORAGE_KEYS.IPS}_${currentUserId}`);
+    } catch {}
+  };
+
   const addAgreement = (data: Omit<AgreementMatter, 'id' | 'tatDaysElapsed' | 'lastModified'>) => {
-    const nextNumber = allAgreements.length + 42;
+    const nextNumber = agreements.length + 1;
     const newId = `AGR-2024-${String(nextNumber).padStart(3, '0')}`;
     const now = new Date();
     const formattedNow = `${now.toISOString().split('T')[0]} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -681,24 +842,26 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const newAgreement: AgreementMatter = {
       ...data,
       id: newId,
-      ownerEmail: data.ownerEmail || activeUser.email.toLowerCase(),
-      assignedCounsel: data.assignedCounsel || `${activeUser.name} (In-House)`,
+      ownerEmail: data.ownerEmail || activeUser?.email?.toLowerCase(),
+      assignedCounsel: data.assignedCounsel || `${activeUser?.name || 'In-House'} (In-House)`,
       tatDaysElapsed: tat,
       lastModified: formattedNow,
     };
 
-    setAllAgreements((prev) => [newAgreement, ...prev]);
+    setAgreements((prev) => [newAgreement, ...prev]);
 
-    setDoc(doc(db, 'agreements', newId), newAgreement).catch((err) =>
-      handleFirestoreError(err, OperationType.CREATE, `agreements/${newId}`)
-    );
+    if (currentUserId) {
+      setDoc(doc(db, 'users', currentUserId, 'agreements', newId), newAgreement).catch((err) =>
+        handleFirestoreError(err, OperationType.CREATE, `users/${currentUserId}/agreements/${newId}`)
+      );
+    }
   };
 
   const updateAgreement = (id: string, updates: Partial<AgreementMatter>) => {
     const now = new Date();
     const formattedNow = `${now.toISOString().split('T')[0]} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     
-    setAllAgreements((prev) =>
+    setAgreements((prev) =>
       prev.map((item) => {
         if (item.id === id) {
           const merged = { ...item, ...updates, lastModified: formattedNow };
@@ -707,9 +870,11 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           }
           merged.tatDaysElapsed = calculateTAT(merged.requestDate, merged.executionDate);
 
-          setDoc(doc(db, 'agreements', id), merged).catch((err) =>
-            handleFirestoreError(err, OperationType.UPDATE, `agreements/${id}`)
-          );
+          if (currentUserId) {
+            setDoc(doc(db, 'users', currentUserId, 'agreements', id), merged).catch((err) =>
+              handleFirestoreError(err, OperationType.UPDATE, `users/${currentUserId}/agreements/${id}`)
+            );
+          }
           return merged;
         }
         return item;
@@ -718,29 +883,33 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const addLod = (data: Omit<LodMatter, 'id'>) => {
-    const nextNumber = allLods.length + 17;
+    const nextNumber = lods.length + 1;
     const newId = `LOD-2024-${String(nextNumber).padStart(3, '0')}`;
     const newLod: LodMatter = {
       ...data,
       id: newId,
-      ownerEmail: data.ownerEmail || activeUser.email.toLowerCase(),
-      assignedCounsel: data.assignedCounsel || `${activeUser.name} (In-House)`,
+      ownerEmail: data.ownerEmail || activeUser?.email?.toLowerCase(),
+      assignedCounsel: data.assignedCounsel || `${activeUser?.name || 'In-House'} (In-House)`,
     };
-    setAllLods((prev) => [newLod, ...prev]);
+    setLods((prev) => [newLod, ...prev]);
 
-    setDoc(doc(db, 'lods', newId), newLod).catch((err) =>
-      handleFirestoreError(err, OperationType.CREATE, `lods/${newId}`)
-    );
+    if (currentUserId) {
+      setDoc(doc(db, 'users', currentUserId, 'lods', newId), newLod).catch((err) =>
+        handleFirestoreError(err, OperationType.CREATE, `users/${currentUserId}/lods/${newId}`)
+      );
+    }
   };
 
   const updateLod = (id: string, updates: Partial<LodMatter>) => {
-    setAllLods((prev) =>
+    setLods((prev) =>
       prev.map((item) => {
         if (item.id === id) {
           const merged = { ...item, ...updates };
-          setDoc(doc(db, 'lods', id), merged).catch((err) =>
-            handleFirestoreError(err, OperationType.UPDATE, `lods/${id}`)
-          );
+          if (currentUserId) {
+            setDoc(doc(db, 'users', currentUserId, 'lods', id), merged).catch((err) =>
+              handleFirestoreError(err, OperationType.UPDATE, `users/${currentUserId}/lods/${id}`)
+            );
+          }
           return merged;
         }
         return item;
@@ -749,29 +918,33 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const addProperty = (data: Omit<PropertyMatter, 'id'>) => {
-    const nextNumber = allProperties.length + 9;
+    const nextNumber = properties.length + 1;
     const newId = `PROP-2024-${String(nextNumber).padStart(3, '0')}`;
     const newProp: PropertyMatter = {
       ...data,
       id: newId,
-      ownerEmail: data.ownerEmail || activeUser.email.toLowerCase(),
-      assignedCounsel: data.assignedCounsel || `${activeUser.name} (In-House)`,
+      ownerEmail: data.ownerEmail || activeUser?.email?.toLowerCase(),
+      assignedCounsel: data.assignedCounsel || `${activeUser?.name || 'In-House'} (In-House)`,
     };
-    setAllProperties((prev) => [newProp, ...prev]);
+    setProperties((prev) => [newProp, ...prev]);
 
-    setDoc(doc(db, 'properties', newId), newProp).catch((err) =>
-      handleFirestoreError(err, OperationType.CREATE, `properties/${newId}`)
-    );
+    if (currentUserId) {
+      setDoc(doc(db, 'users', currentUserId, 'properties', newId), newProp).catch((err) =>
+        handleFirestoreError(err, OperationType.CREATE, `users/${currentUserId}/properties/${newId}`)
+      );
+    }
   };
 
   const updateProperty = (id: string, updates: Partial<PropertyMatter>) => {
-    setAllProperties((prev) =>
+    setProperties((prev) =>
       prev.map((item) => {
         if (item.id === id) {
           const merged = { ...item, ...updates };
-          setDoc(doc(db, 'properties', id), merged).catch((err) =>
-            handleFirestoreError(err, OperationType.UPDATE, `properties/${id}`)
-          );
+          if (currentUserId) {
+            setDoc(doc(db, 'users', currentUserId, 'properties', id), merged).catch((err) =>
+              handleFirestoreError(err, OperationType.UPDATE, `users/${currentUserId}/properties/${id}`)
+            );
+          }
           return merged;
         }
         return item;
@@ -782,29 +955,33 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const addIp = (data: Omit<IpMatter, 'id'>) => {
     const isPatent = data.ipType === 'Patent';
     const prefix = isPatent ? 'PAT' : 'TM';
-    const nextNumber = allIps.length + 13;
+    const nextNumber = ips.length + 1;
     const newId = `${prefix}-2024-${String(nextNumber).padStart(3, '0')}`;
     const newIp: IpMatter = {
       ...data,
       id: newId,
-      ownerEmail: data.ownerEmail || activeUser.email.toLowerCase(),
-      assignedCounsel: data.assignedCounsel || `${activeUser.name} (In-House)`,
+      ownerEmail: data.ownerEmail || activeUser?.email?.toLowerCase(),
+      assignedCounsel: data.assignedCounsel || `${activeUser?.name || 'In-House'} (In-House)`,
     };
-    setAllIps((prev) => [newIp, ...prev]);
+    setIps((prev) => [newIp, ...prev]);
 
-    setDoc(doc(db, 'ips', newId), newIp).catch((err) =>
-      handleFirestoreError(err, OperationType.CREATE, `ips/${newId}`)
-    );
+    if (currentUserId) {
+      setDoc(doc(db, 'users', currentUserId, 'ips', newId), newIp).catch((err) =>
+        handleFirestoreError(err, OperationType.CREATE, `users/${currentUserId}/ips/${newId}`)
+      );
+    }
   };
 
   const updateIp = (id: string, updates: Partial<IpMatter>) => {
-    setAllIps((prev) =>
+    setIps((prev) =>
       prev.map((item) => {
         if (item.id === id) {
           const merged = { ...item, ...updates };
-          setDoc(doc(db, 'ips', id), merged).catch((err) =>
-            handleFirestoreError(err, OperationType.UPDATE, `ips/${id}`)
-          );
+          if (currentUserId) {
+            setDoc(doc(db, 'users', currentUserId, 'ips', id), merged).catch((err) =>
+              handleFirestoreError(err, OperationType.UPDATE, `users/${currentUserId}/ips/${id}`)
+            );
+          }
           return merged;
         }
         return item;
@@ -830,26 +1007,28 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const deleteMatter = (type: 'agreement' | 'lod' | 'property' | 'ip', id: string) => {
     if (type === 'agreement') {
-      setAllAgreements((prev) => prev.filter((i) => i.id !== id));
+      setAgreements((prev) => prev.filter((i) => i.id !== id));
     } else if (type === 'lod') {
-      setAllLods((prev) => prev.filter((i) => i.id !== id));
+      setLods((prev) => prev.filter((i) => i.id !== id));
     } else if (type === 'property') {
-      setAllProperties((prev) => prev.filter((i) => i.id !== id));
+      setProperties((prev) => prev.filter((i) => i.id !== id));
     } else if (type === 'ip') {
-      setAllIps((prev) => prev.filter((i) => i.id !== id));
+      setIps((prev) => prev.filter((i) => i.id !== id));
     }
 
-    const collectionName =
-      type === 'agreement'
-        ? 'agreements'
-        : type === 'lod'
-        ? 'lods'
-        : type === 'property'
-        ? 'properties'
-        : 'ips';
-    deleteDoc(doc(db, collectionName, id)).catch((err) =>
-      handleFirestoreError(err, OperationType.DELETE, `${collectionName}/${id}`)
-    );
+    if (currentUserId) {
+      const collectionName =
+        type === 'agreement'
+          ? 'agreements'
+          : type === 'lod'
+          ? 'lods'
+          : type === 'property'
+          ? 'properties'
+          : 'ips';
+      deleteDoc(doc(db, 'users', currentUserId, collectionName, id)).catch((err) =>
+        handleFirestoreError(err, OperationType.DELETE, `users/${currentUserId}/${collectionName}/${id}`)
+      );
+    }
 
     if (selectedMatter && selectedMatter.id === id) {
       setSelectedMatter(null);
@@ -858,61 +1037,87 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const resetToDefaultData = () => {
-    setAllAgreements(INITIAL_AGREEMENTS);
-    setAllLods(INITIAL_LODS);
-    setAllProperties(INITIAL_PROPERTIES);
-    setAllIps(INITIAL_IPS);
+    seedStarterTemplate();
     setSelectedMatter({ type: 'lod', id: 'LOD-2024-012' });
     setIsInspectionDrawerOpen(true);
-    localStorage.removeItem(STORAGE_KEYS.AGREEMENTS);
-    localStorage.removeItem(STORAGE_KEYS.LODS);
-    localStorage.removeItem(STORAGE_KEYS.PROPERTIES);
-    localStorage.removeItem(STORAGE_KEYS.IPS);
   };
 
   // Compute counts & SLA metrics for current scoped view
-  const expiredOverdueCount = React.useMemo(() => {
-    let count = 0;
-    // Overdue LODs
-    lods.forEach((l) => {
+  const overdueBreakdown = React.useMemo(() => {
+    const overdueLods = lods.filter((l) => {
       const remaining = getDaysRemaining(l.responseDeadlineDate);
-      if (remaining !== null && remaining <= 0 && l.stage !== 'Response Sent - Closed') count++;
-    });
-    // Expired agreements
-    agreements.forEach((a) => {
+      return remaining !== null && remaining <= 0 && l.stage !== 'Response Sent - Closed';
+    }).length;
+
+    const overdueAgreements = agreements.filter((a) => {
       const remaining = getDaysRemaining(a.expectedExpiryDate);
-      if (remaining !== null && remaining <= 0) count++;
-    });
-    // Overdue properties
-    properties.forEach((p) => {
+      return remaining !== null && remaining <= 0;
+    }).length;
+
+    const overdueProperties = properties.filter((p) => {
       const remaining = getDaysRemaining(p.targetCompletionDate);
-      if (remaining !== null && remaining <= 0 && p.stage !== 'Stamped-Completed') count++;
-    });
-    // Expired IPs
-    ips.forEach((i) => {
+      return remaining !== null && remaining <= 0 && p.stage !== 'Stamped-Completed';
+    }).length;
+
+    const overdueIps = ips.filter((i) => {
       const remaining = getDaysRemaining(i.expiryRenewalDate);
-      if (remaining !== null && remaining <= 0) count++;
-    });
-    return count;
+      return remaining !== null && remaining <= 0;
+    }).length;
+
+    return {
+      lods: overdueLods,
+      agreements: overdueAgreements,
+      properties: overdueProperties,
+      ips: overdueIps,
+    };
+  }, [agreements, lods, properties, ips]);
+
+  const expiredOverdueCount = React.useMemo(() => {
+    return (
+      overdueBreakdown.lods +
+      overdueBreakdown.agreements +
+      overdueBreakdown.properties +
+      overdueBreakdown.ips
+    );
+  }, [overdueBreakdown]);
+
+  const expiringBreakdown = React.useMemo(() => {
+    const expiringProperties = properties.filter((p) => {
+      const remaining = getDaysRemaining(p.targetCompletionDate);
+      return remaining !== null && remaining > 0 && remaining <= 30 && p.stage !== 'Stamped-Completed';
+    }).length;
+
+    const expiringIps = ips.filter((i) => {
+      const remaining = getDaysRemaining(i.expiryRenewalDate);
+      return remaining !== null && remaining > 0 && remaining <= 30;
+    }).length;
+
+    const expiringAgreements = agreements.filter((a) => {
+      const remaining = getDaysRemaining(a.expectedExpiryDate);
+      return remaining !== null && remaining > 0 && remaining <= 30;
+    }).length;
+
+    const expiringLods = lods.filter((l) => {
+      const remaining = getDaysRemaining(l.responseDeadlineDate);
+      return remaining !== null && remaining > 0 && remaining <= 30 && l.stage !== 'Response Sent - Closed';
+    }).length;
+
+    return {
+      properties: expiringProperties,
+      ips: expiringIps,
+      agreements: expiringAgreements,
+      lods: expiringLods,
+    };
   }, [agreements, lods, properties, ips]);
 
   const expiringSoonCount = React.useMemo(() => {
-    let count = 0;
-    // Trademarks & Leases expiring in < 30 days
-    properties.forEach((p) => {
-      const remaining = getDaysRemaining(p.targetCompletionDate);
-      if (remaining !== null && remaining > 0 && remaining <= 30) count++;
-    });
-    ips.forEach((i) => {
-      const remaining = getDaysRemaining(i.expiryRenewalDate);
-      if (remaining !== null && remaining > 0 && remaining <= 30) count++;
-    });
-    agreements.forEach((a) => {
-      const remaining = getDaysRemaining(a.expectedExpiryDate);
-      if (remaining !== null && remaining > 0 && remaining <= 30) count++;
-    });
-    return count;
-  }, [agreements, properties, ips]);
+    return (
+      expiringBreakdown.properties +
+      expiringBreakdown.ips +
+      expiringBreakdown.agreements +
+      expiringBreakdown.lods
+    );
+  }, [expiringBreakdown]);
 
   const lateFinanceStats = React.useMemo(() => {
     let count = 0;
@@ -977,12 +1182,12 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         lods,
         properties,
         ips,
-        allAgreements,
-        allLods,
-        allProperties,
-        allIps,
-        userScope,
-        setUserScope,
+        allAgreements: agreements,
+        allLods: lods,
+        allProperties: properties,
+        allIps: ips,
+        userScope: 'personal',
+        setUserScope: () => {},
         activeTab,
         setActiveTab,
         activeFilter,
@@ -996,6 +1201,10 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setActiveUser,
         teamCounsels: DEFAULT_TEAM_COUNSELS,
         signInCounsel,
+        signInAsNewUserDemo,
+        signInAsExistingUserDemo,
+        seedStarterTemplate,
+        clearAllPersonalMatters,
         seedTeammateSampleData,
         isAuthModalOpen,
         setIsAuthModalOpen,
@@ -1047,6 +1256,8 @@ export const LegalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           lateFinanceInvoices: lateFinanceStats.count,
           lateFinanceAmountMYR: lateFinanceStats.totalMYR,
           externalLawFirms: externalLawFirmsCount,
+          overdueBreakdown,
+          expiringBreakdown,
         },
       }}
     >

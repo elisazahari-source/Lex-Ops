@@ -123,11 +123,24 @@ service cloud.firestore {
       allow delete: if isVerifiedUser() && isValidId(linkId);
     }
 
-    // Multiple Users Profiles Collection
+    // Multiple Users Profiles Collection & Isolated Personal Trackers
     match /users/{userId} {
       allow get, list: if isVerifiedUser();
       allow create, update: if isVerifiedUser() && (request.auth.uid == userId || isAdmin());
       allow delete: if isAdmin() && isValidId(userId);
+
+      match /agreements/{agreementId} {
+        allow read, write: if isVerifiedUser() && (request.auth.uid == userId || isAdmin());
+      }
+      match /lods/{lodId} {
+        allow read, write: if isVerifiedUser() && (request.auth.uid == userId || isAdmin());
+      }
+      match /properties/{propertyId} {
+        allow read, write: if isVerifiedUser() && (request.auth.uid == userId || isAdmin());
+      }
+      match /ips/{ipId} {
+        allow read, write: if isVerifiedUser() && (request.auth.uid == userId || isAdmin());
+      }
     }
 
     // Admins Collection (Restricted strictly to Admins)
