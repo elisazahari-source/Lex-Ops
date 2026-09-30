@@ -12,6 +12,7 @@ import { formatCurrency, getDaysPendingWithFinance } from '../utils/dateUtils';
 export const MetricCards: React.FC = () => {
   const {
     counts,
+    activeTab,
     activeFilter,
     setActiveFilter,
     setActiveTab,
@@ -221,13 +222,17 @@ export const MetricCards: React.FC = () => {
       {/* CARD 3: PENDING FINANCE INVOICES */}
       <div
         onClick={handleCard3Click}
-        className="bg-white rounded-lg p-3 border transition-all cursor-pointer relative overflow-hidden group shadow-2xs border-l-4 border-l-amber-500 border-slate-200/90 hover:border-slate-300"
+        className={`bg-white rounded-lg p-3 border transition-all cursor-pointer relative overflow-hidden group shadow-2xs border-l-4 border-l-emerald-600 ${
+          activeTab === 'payments'
+            ? 'border-emerald-300 ring-2 ring-emerald-100 bg-emerald-50/20'
+            : 'border-slate-200/90 hover:border-slate-300'
+        }`}
       >
         <div className="flex items-start justify-between">
           <div className="space-y-0.5">
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
-              <span className="text-[11px] font-bold tracking-wider uppercase text-slate-800">
+              <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0"></span>
+              <span className="text-[11px] font-bold tracking-wider uppercase text-emerald-700">
                 PENDING FINANCE INVOICES
               </span>
             </div>
@@ -235,7 +240,7 @@ export const MetricCards: React.FC = () => {
               {formatCurrency(financeStats.totalAmount)} total • {financeStats.agedOver14d} aged &gt;14d
             </p>
           </div>
-          <div className="w-7 h-7 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+          <div className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
             <Receipt className="w-4 h-4 stroke-[2.2]" />
           </div>
         </div>
@@ -245,19 +250,27 @@ export const MetricCards: React.FC = () => {
             <span className="text-2xl font-extrabold text-slate-900 tracking-tight font-sans tabular-nums">
               {financeStats.totalCount}
             </span>
-            <span className="text-[11.5px] font-medium text-slate-600 ml-1.5">
+            <span className="text-[11.5px] font-semibold text-emerald-700 ml-1.5">
               invoices awaiting AP
             </span>
           </div>
 
           <button
             onClick={handleFinanceLink}
-            className="inline-flex items-center gap-1 text-[11px] font-bold text-red-600 hover:text-red-700 hover:underline group-hover:translate-x-0.5 transition-transform cursor-pointer"
+            title="Action Required: Invoices submitted to Finance Accounts Payable (AP) over 14 days ago awaiting disbursement"
+            className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 hover:underline group-hover:translate-x-0.5 transition-transform cursor-pointer"
           >
             <span>{financeStats.agedOver14d} Aged &gt;14d (Action Required)</span>
-            <ArrowRight className="w-3.5 h-3.5 text-red-600" />
+            <ArrowRight className="w-3.5 h-3.5 text-emerald-600" />
           </button>
         </div>
+
+        {activeTab === 'payments' && (
+          <div className="mt-2 pt-1.5 border-t border-emerald-100 flex items-center justify-between text-[10.5px] text-emerald-700 font-medium">
+            <span>Active Module: Legal Fee &amp; Finance AP Tracker</span>
+            <span className="font-semibold underline">Viewing</span>
+          </div>
+        )}
       </div>
 
       {/* CARD 4: ACTIVE MATTERS */}
