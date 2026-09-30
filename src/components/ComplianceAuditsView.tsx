@@ -59,7 +59,7 @@ export const ComplianceAuditsView: React.FC = () => {
     {
       id: 'AUD-2024-003',
       framework: 'Communications and Multimedia Act 1998 (CMA) License Stamping',
-      regulator: 'MCMC (Suruhanjaya Komunikasi dan Multimedia Malaysia)',
+      regulator: 'MCMC (Malaysian Communications and Multimedia Commission)',
       scope: 'CASP(I) / NFP(I) broadcasting license compliance and broadcast content standards',
       frequency: 'Annual',
       lastAuditedDate: '2024-09-30',

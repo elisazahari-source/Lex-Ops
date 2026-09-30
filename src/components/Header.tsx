@@ -271,7 +271,7 @@ export const Header: React.FC = () => {
 
           <div className="min-w-0 hidden md:block text-left">
             <span className="text-[11.5px] font-bold text-slate-900 max-w-[120px] truncate block leading-tight">
-              {activeUser?.name || 'Peguam Korporat'}
+              {activeUser?.name || 'Corporate Counsel'}
             </span>
             <span className="text-[9.5px] text-slate-500 font-medium truncate block leading-tight max-w-[120px]">
               {activeUser?.email || ''}
@@ -281,11 +281,11 @@ export const Header: React.FC = () => {
           <button
             type="button"
             onClick={signOut}
-            title="Log Keluar / Sign Out dari akaun peribadi anda"
+            title="Sign Out from your counsel account"
             className="flex items-center gap-1 text-[11.5px] font-semibold text-slate-600 hover:text-red-700 hover:bg-red-50 px-2 py-0.5 rounded cursor-pointer transition-colors border-l border-slate-200 pl-2 ml-0.5"
           >
             <LogOut className="w-3.5 h-3.5 text-slate-500 group-hover:text-red-600" />
-            <span className="hidden sm:inline">Log Keluar</span>
+            <span className="hidden sm:inline">Sign Out</span>
           </button>
         </div>
 

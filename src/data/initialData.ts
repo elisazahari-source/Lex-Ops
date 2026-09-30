@@ -572,7 +572,7 @@ export const INITIAL_PROPERTIES: PropertyMatter[] = [
     propertyName: 'Bukit Besi Transmission Transmitter Station',
     propertyAddress: 'Lot 401, Bukit Besi, Dungun, Terengganu',
     transactionType: 'Disposal',
-    counterparty: 'Suruhanjaya Komunikasi dan Multimedia Malaysia (MCMC)',
+    counterparty: 'Malaysian Communications and Multimedia Commission (MCMC)',
     internalStakeholder: 'Kavitha Pillay',
     externalLawFirm: 'Messrs. Cheang & Ariff',
     lawyerContact: 'Ms. Shireen Gomez',

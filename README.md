@@ -10,6 +10,25 @@
 [![Firebase](https://img.shields.io/badge/Firebase-Auth%20%26%20Firestore-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![License](https://img.shields.io/badge/License-Proprietary-red.svg)](#)
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-lexops--inhousetracker.ai.studio-22c55e?style=for-the-badge&logo=google-chrome&logoColor=white)](https://lexops-inhousetracker.ai.studio)
+
+---
+
+## 🌐 Live Demo & Instant Access
+
+Access the live cloud deployment to explore and test the platform immediately:
+
+🔗 **Web Application URL:**  
+👉 **[https://lexops-inhousetracker.ai.studio](https://lexops-inhousetracker.ai.studio)**
+
+### 💡 Quick Testing Options (Front Page Demo Logins):
+- **Existing User Demo (Has Existing Data)**:
+  - Instant access to a pre-populated corporate legal pipeline with active contracts across all 6 workflow stages (LDRF through Executed), litigation claims (LOD), commercial property leases/disposals, intellectual property portfolios (MyIPO/WIPO), and external law firm fee remittance tracking.
+- **New User Demo (Blank Data)**:
+  - Enters as a fresh in-house counsel with a 100% clean, blank workspace (0 matters and 0 alerts). Counsel can begin inputting their first agreement immediately or click the **"Load Sample Data"** button anytime to simulate enterprise operations.
+- **New Account Registration & Google Workspace SSO**:
+  - Sign up with your enterprise corporate email or authenticate with one click via Google Workspace Single Sign-On (SSO). Each user's database is encrypted and strictly isolated in Cloud Firestore.
+
 ---
 
 ## 📌 Executive Summary
