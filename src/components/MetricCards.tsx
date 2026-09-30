@@ -204,7 +204,7 @@ export const MetricCards: React.FC = () => {
 
           <button
             onClick={handleExpiringLink}
-            className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 hover:text-amber-700 hover:underline group-hover:translate-x-0.5 transition-transform cursor-pointer"
+            className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 hover:text-amber-800 hover:underline group-hover:translate-x-0.5 transition-transform cursor-pointer"
           >
             <span>Review timeline</span>
             <ArrowRight className="w-3.5 h-3.5" />

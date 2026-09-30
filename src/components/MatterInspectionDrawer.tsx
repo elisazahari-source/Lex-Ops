@@ -19,8 +19,11 @@ import {
   Plus,
   Edit2,
   Clock,
+  HardDrive,
+  ExternalLink,
 } from 'lucide-react';
 import { formatCurrency, getDaysRemaining, formatDateDisplay } from '../utils/dateUtils';
+import { downloadSupportingDocument, downloadMatterDossier } from '../utils/downloadUtils';
 import {
   LodStage,
   AgreementStage,
@@ -58,6 +61,7 @@ export const MatterInspectionDrawer: React.FC = () => {
     updateAgreement,
     updateProperty,
     updateIp,
+    setIsGoogleDriveOpen,
   } = useLegal();
 
   // Find active item

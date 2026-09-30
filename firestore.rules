@@ -1,0 +1,142 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Default Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Hardened Global Primitives
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'google.com');
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'elisa.zahari@mediaprima.com.my' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Validation Blueprint for Agreements
+    function isValidAgreement(data) {
+      return data.keys().hasAll(['id', 'title', 'agreementType', 'stage', 'requestDate', 'expectedExpiryDate']) &&
+        data.id is string && data.id.size() <= 64 &&
+        data.title is string && data.title.size() <= 256 &&
+        data.agreementType is string && data.agreementType.size() <= 128 &&
+        data.stage is string && data.stage.size() <= 64 &&
+        data.requestDate is string && data.requestDate.size() <= 32 &&
+        data.expectedExpiryDate is string && data.expectedExpiryDate.size() <= 32 &&
+        (!('notes' in data) || (data.notes is string && data.notes.size() <= 2048)) &&
+        (!('remarks' in data) || (data.remarks is string && data.remarks.size() <= 2048));
+    }
+
+    // Validation Blueprint for LODs
+    function isValidLod(data) {
+      return data.keys().hasAll(['id', 'title', 'claimantName', 'dateReceived', 'responseDeadlineDate', 'stage']) &&
+        data.id is string && data.id.size() <= 64 &&
+        data.title is string && data.title.size() <= 256 &&
+        data.claimantName is string && data.claimantName.size() <= 128 &&
+        data.stage is string && data.stage.size() <= 64 &&
+        data.dateReceived is string && data.dateReceived.size() <= 32 &&
+        data.responseDeadlineDate is string && data.responseDeadlineDate.size() <= 32 &&
+        (!('briefClaimSummary' in data) || (data.briefClaimSummary is string && data.briefClaimSummary.size() <= 2048)) &&
+        (!('responseNotes' in data) || (data.responseNotes is string && data.responseNotes.size() <= 2048));
+    }
+
+    // Validation Blueprint for Property Conveyancing
+    function isValidProperty(data) {
+      return data.keys().hasAll(['id', 'propertyName', 'transactionType', 'counterparty', 'targetCompletionDate', 'stage']) &&
+        data.id is string && data.id.size() <= 64 &&
+        data.propertyName is string && data.propertyName.size() <= 256 &&
+        data.transactionType is string && data.transactionType.size() <= 64 &&
+        data.counterparty is string && data.counterparty.size() <= 128 &&
+        data.stage is string && data.stage.size() <= 64 &&
+        data.targetCompletionDate is string && data.targetCompletionDate.size() <= 32 &&
+        (!('notes' in data) || (data.notes is string && data.notes.size() <= 2048));
+    }
+
+    // Validation Blueprint for IP Matters
+    function isValidIp(data) {
+      return data.keys().hasAll(['id', 'trademarkName', 'registrationNumber', 'expiryRenewalDate', 'status']) &&
+        data.id is string && data.id.size() <= 64 &&
+        data.trademarkName is string && data.trademarkName.size() <= 256 &&
+        data.registrationNumber is string && data.registrationNumber.size() <= 64 &&
+        data.status is string && data.status.size() <= 32 &&
+        data.expiryRenewalDate is string && data.expiryRenewalDate.size() <= 32 &&
+        (!('notes' in data) || (data.notes is string && data.notes.size() <= 2048));
+    }
+
+    // Agreements Collection
+    match /agreements/{agreementId} {
+      allow get: if isVerifiedUser() && isValidId(agreementId);
+      allow list: if isVerifiedUser();
+      allow create: if isVerifiedUser() && isValidId(agreementId) && isValidAgreement(incoming());
+      allow update: if isVerifiedUser() && isValidId(agreementId) && isValidAgreement(incoming());
+      allow delete: if isAdmin() && isValidId(agreementId);
+    }
+
+    // LODs Dispute Tracker Collection
+    match /lods/{lodId} {
+      allow get: if isVerifiedUser() && isValidId(lodId);
+      allow list: if isVerifiedUser();
+      allow create: if isVerifiedUser() && isValidId(lodId) && isValidLod(incoming());
+      allow update: if isVerifiedUser() && isValidId(lodId) && isValidLod(incoming());
+      allow delete: if isAdmin() && isValidId(lodId);
+    }
+
+    // Property Conveyancing Collection
+    match /properties/{propertyId} {
+      allow get: if isVerifiedUser() && isValidId(propertyId);
+      allow list: if isVerifiedUser();
+      allow create: if isVerifiedUser() && isValidId(propertyId) && isValidProperty(incoming());
+      allow update: if isVerifiedUser() && isValidId(propertyId) && isValidProperty(incoming());
+      allow delete: if isAdmin() && isValidId(propertyId);
+    }
+
+    // Intellectual Property & Trademarks Collection
+    match /ips/{ipId} {
+      allow get: if isVerifiedUser() && isValidId(ipId);
+      allow list: if isVerifiedUser();
+      allow create: if isVerifiedUser() && isValidId(ipId) && isValidIp(incoming());
+      allow update: if isVerifiedUser() && isValidId(ipId) && isValidIp(incoming());
+      allow delete: if isAdmin() && isValidId(ipId);
+    }
+
+    // Saved Document & Drive Links Collection
+    match /links/{linkId} {
+      allow get, list: if isVerifiedUser();
+      allow create, update: if isVerifiedUser() && isValidId(linkId);
+      allow delete: if isVerifiedUser() && isValidId(linkId);
+    }
+
+    // Multiple Users Profiles Collection
+    match /users/{userId} {
+      allow get, list: if isVerifiedUser();
+      allow create, update: if isVerifiedUser() && (request.auth.uid == userId || isAdmin());
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+
+    // Admins Collection (Restricted strictly to Admins)
+    match /admins/{adminUid} {
+      allow read: if isAdmin() && isValidId(adminUid);
+      allow write: if isAdmin() && isValidId(adminUid);
+    }
+  }
+}

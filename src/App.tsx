@@ -16,6 +16,7 @@ import { MatterInspectionDrawer } from './components/MatterInspectionDrawer';
 import { NewIntakeModal } from './components/NewIntakeModal';
 import { QuickLdrfModal } from './components/QuickLdrfModal';
 import { DocumentationModal } from './components/DocumentationModal';
+import { GoogleDriveModal } from './components/GoogleDriveModal';
 import { PanelRightOpen, X } from 'lucide-react';
 
 const MainLayout: React.FC = () => {
@@ -25,6 +26,8 @@ const MainLayout: React.FC = () => {
     setIsInspectionDrawerOpen,
     selectedMatter,
     setSelectedMatter,
+    isGoogleDriveOpen,
+    setIsGoogleDriveOpen,
   } = useLegal();
 
   return (
@@ -95,6 +98,10 @@ const MainLayout: React.FC = () => {
       <NewIntakeModal />
       <QuickLdrfModal />
       <DocumentationModal />
+      <GoogleDriveModal
+        isOpen={isGoogleDriveOpen}
+        onClose={() => setIsGoogleDriveOpen(false)}
+      />
     </div>
   );
 };

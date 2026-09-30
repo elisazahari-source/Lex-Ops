@@ -1,0 +1,165 @@
+{
+  "entities": {
+    "agreement": {
+      "title": "Agreement Matter",
+      "description": "Commercial agreement matter record tracked in legal operations",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "description": "Matter identifier e.g. AGR-2024-001" },
+        "title": { "type": "string", "maxLength": 256, "description": "Title of agreement" },
+        "agreementType": { "type": "string", "maxLength": 128, "description": "Type of agreement" },
+        "stakeholderName": { "type": "string", "maxLength": 128, "description": "Internal business owner / stakeholder" },
+        "stakeholderDepartment": { "type": "string", "maxLength": 128, "description": "Internal business department" },
+        "counterpartyName": { "type": "string", "maxLength": 128, "description": "External counterparty entity name" },
+        "requestDate": { "type": "string", "maxLength": 32, "description": "Requisition intake date" },
+        "expectedExpiryDate": { "type": "string", "maxLength": 32, "description": "Expected expiry date" },
+        "renewalPromptLeadDays": { "type": "number", "description": "Lead time notice days for renewal" },
+        "stage": { "type": "string", "maxLength": 64, "description": "Current agreement workflow stage" },
+        "tatDaysElapsed": { "type": "number", "description": "Turnaround time in days" },
+        "lastModified": { "type": "string", "maxLength": 64, "description": "Timestamp of last modification" },
+        "assignedCounsel": { "type": "string", "maxLength": 128, "description": "Assigned in-house legal counsel" },
+        "contractValue": { "type": "number", "description": "Total contract value" },
+        "currency": { "type": "string", "maxLength": 8, "description": "Currency code" },
+        "notes": { "type": "string", "maxLength": 2048, "description": "Case history or attorney notes" },
+        "remarks": { "type": "string", "maxLength": 2048, "description": "General remarks" }
+      },
+      "required": ["id", "title", "agreementType", "stage", "requestDate", "expectedExpiryDate"]
+    },
+    "lod": {
+      "title": "Letter of Demand Matter",
+      "description": "Letter of Demand and litigation dispute matter record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "description": "LOD identifier e.g. LOD-2024-012" },
+        "claimRef": { "type": "string", "maxLength": 128, "description": "Claim reference or court suit number" },
+        "title": { "type": "string", "maxLength": 256, "description": "Dispute matter title" },
+        "claimantName": { "type": "string", "maxLength": 128, "description": "Claimant party" },
+        "adverseCounsel": { "type": "string", "maxLength": 128, "description": "Adverse law firm" },
+        "appointedLitigationFirm": { "type": "string", "maxLength": 128, "description": "Appointed litigation or advisory firm" },
+        "briefClaimSummary": { "type": "string", "maxLength": 2048, "description": "Summary of allegations and claims" },
+        "claimAmount": { "type": "number", "description": "Financial exposure in MYR" },
+        "currency": { "type": "string", "maxLength": 8, "description": "Currency code" },
+        "dateReceived": { "type": "string", "maxLength": 32, "description": "Date demand letter served" },
+        "responseDeadlineDate": { "type": "string", "maxLength": 32, "description": "Statutory response deadline date" },
+        "stage": { "type": "string", "maxLength": 64, "description": "Dispute resolution stage" },
+        "responseNotes": { "type": "string", "maxLength": 2048, "description": "Fact-finding takeaways and defense notes" },
+        "assignedCounsel": { "type": "string", "maxLength": 128, "description": "Assigned in-house legal counsel" }
+      },
+      "required": ["id", "title", "claimantName", "dateReceived", "responseDeadlineDate", "stage"]
+    },
+    "property": {
+      "title": "Property Conveyancing Matter",
+      "description": "Property conveyancing, tenancy and lease matter record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "description": "Property matter ID e.g. PROP-2024-001" },
+        "propertyName": { "type": "string", "maxLength": 256, "description": "Property asset name" },
+        "propertyAddress": { "type": "string", "maxLength": 512, "description": "Physical property address" },
+        "transactionType": { "type": "string", "maxLength": 64, "description": "Transaction type (Tenancy, Lease, etc.)" },
+        "counterparty": { "type": "string", "maxLength": 128, "description": "Landlord / Tenant / Vendor" },
+        "internalStakeholder": { "type": "string", "maxLength": 128, "description": "Internal business owner" },
+        "externalLawFirm": { "type": "string", "maxLength": 128, "description": "Appointed conveyancing firm" },
+        "lawyerContact": { "type": "string", "maxLength": 128, "description": "Lawyer contact details" },
+        "targetCompletionDate": { "type": "string", "maxLength": 32, "description": "Target completion date" },
+        "stage": { "type": "string", "maxLength": 64, "description": "Conveyancing stage" },
+        "rentalOrValueAmount": { "type": "number", "description": "Transaction amount in MYR" },
+        "currency": { "type": "string", "maxLength": 8, "description": "Currency code" },
+        "notes": { "type": "string", "maxLength": 2048, "description": "Conveyancing notes" },
+        "assignedCounsel": { "type": "string", "maxLength": 128, "description": "Assigned in-house legal counsel" }
+      },
+      "required": ["id", "propertyName", "transactionType", "counterparty", "targetCompletionDate", "stage"]
+    },
+    "ip": {
+      "title": "Intellectual Property Matter",
+      "description": "Trademark or Patent registration and renewal matter",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "description": "IP asset ID e.g. TM-2024-001" },
+        "ipType": { "type": "string", "maxLength": 32, "description": "Trademark or Patent" },
+        "trademarkName": { "type": "string", "maxLength": 256, "description": "Trademark brand or invention title" },
+        "registrationNumber": { "type": "string", "maxLength": 64, "description": "Statutory registration number" },
+        "niceClass": { "type": "string", "maxLength": 64, "description": "Nice classification or IPC class" },
+        "filingDate": { "type": "string", "maxLength": 32, "description": "Date filed with registry" },
+        "expiryRenewalDate": { "type": "string", "maxLength": 32, "description": "Statutory protection renewal date" },
+        "status": { "type": "string", "maxLength": 32, "description": "Registration status (Pending, Registered, Refused)" },
+        "externalLawFirm": { "type": "string", "maxLength": 128, "description": "Appointed IP attorney firm" },
+        "jurisdiction": { "type": "string", "maxLength": 128, "description": "Jurisdiction registry (MyIPO, WIPO, etc.)" },
+        "notes": { "type": "string", "maxLength": 2048, "description": "IP notes" },
+        "assignedCounsel": { "type": "string", "maxLength": 128, "description": "Assigned in-house legal counsel" }
+      },
+      "required": ["id", "trademarkName", "registrationNumber", "expiryRenewalDate", "status"]
+    },
+    "link": {
+      "title": "Saved Document & Drive Link",
+      "description": "Document links, Drive assets, and file repository records saved in Firebase",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "description": "Unique link identifier" },
+        "name": { "type": "string", "maxLength": 256, "description": "Document or link display title" },
+        "url": { "type": "string", "maxLength": 2048, "description": "Resource URL or web view link" },
+        "category": { "type": "string", "maxLength": 64, "description": "Document category e.g. Google Drive, Contract, Annexure" },
+        "matterId": { "type": "string", "maxLength": 64, "description": "Associated legal matter ID" },
+        "matterType": { "type": "string", "maxLength": 32, "description": "Matter module type" },
+        "uploadedBy": { "type": "string", "maxLength": 128, "description": "Counsel who saved the link" },
+        "uploadedAt": { "type": "string", "maxLength": 64, "description": "Timestamp of save" },
+        "sizeFormatted": { "type": "string", "maxLength": 32, "description": "Formatted file size" }
+      },
+      "required": ["id", "name", "url", "category"]
+    },
+    "user": {
+      "title": "User Profile",
+      "description": "App user profile for multiple legal counsel signing in and out",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128, "description": "Firebase user UID" },
+        "displayName": { "type": "string", "maxLength": 128, "description": "User display name" },
+        "email": { "type": "string", "maxLength": 128, "description": "User email address" },
+        "photoURL": { "type": "string", "maxLength": 1024, "description": "User avatar photo URL" },
+        "role": { "type": "string", "maxLength": 64, "description": "Legal role title" },
+        "lastLogin": { "type": "string", "maxLength": 64, "description": "Last sign-in timestamp" }
+      },
+      "required": ["uid", "email"]
+    },
+    "admin": {
+      "title": "Admin Role Verification",
+      "description": "Document confirming administrative access for authorized legal operations admins",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "maxLength": 128, "description": "Admin email address" },
+        "role": { "type": "string", "maxLength": 32, "description": "Admin role designation" },
+        "assignedAt": { "type": "string", "maxLength": 64, "description": "Timestamp role was granted" }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/agreements/{agreementId}": {
+      "schema": "agreement",
+      "description": "Collection of corporate commercial agreements and LDRF records"
+    },
+    "/lods/{lodId}": {
+      "schema": "lod",
+      "description": "Collection of Letters of Demand and litigation disputes"
+    },
+    "/properties/{propertyId}": {
+      "schema": "property",
+      "description": "Collection of property conveyancing, leases and tenancy records"
+    },
+    "/ips/{ipId}": {
+      "schema": "ip",
+      "description": "Collection of intellectual property trademarks and patents"
+    },
+    "/links/{linkId}": {
+      "schema": "link",
+      "description": "Collection of saved Google Drive documents and legal links"
+    },
+    "/users/{userId}": {
+      "schema": "user",
+      "description": "Collection of active user profiles and counsel accounts"
+    },
+    "/admins/{adminUid}": {
+      "schema": "admin",
+      "description": "Access control list for legal operations administrators"
+    }
+  }
+}
